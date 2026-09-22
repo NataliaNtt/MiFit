@@ -1516,14 +1516,57 @@ input[type="password"]::-ms-clear {
   box-shadow: 0 0 0 24px rgba(214, 33, 42, 0.035), 0 0 0 48px rgba(214, 33, 42, 0.025);
 }
 
+/* ==========================================
+   MEDIA QUERY PARA MÓVILES Y TABLETS (<= 768px)
+   ========================================== */
+@media (max-width: 768px) {
+  body {
+    padding-top: 110px; /* Ajuste para tablets si se apila */
+  }
+  .header-mfit {
+    flex-direction: column;
+    padding: 8px 12px;
+    gap: 8px;
+  }
 
+  .header-left-spacer {
+    display: none;
+    /* Se oculta en móvil para aprovechar el espacio */
+  }
 
+  .logo-center-wrapper {
+    height: 54px;
+  }
 
+  .mfit-logo-img {
+    max-height: 52px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+
+  .header-actions .btn {
+    padding: 7px 12px;
+    font-size: 0.78rem;
+  }
+
+  .main-shell {
+    padding: 16px 12px 96px;
+  }
+}
 /* ==========================================
    MEDIA QUERIES
    ========================================== */
 @media (max-width: 640px) {
   body {
+    /* Ajusta este valor según la altura de tu header en móvil (ej. 65px - 75px) */
+    padding-top: 70px; 
+
     /* Mantenemos espacio extra abajo por si el móvil tiene barra inferior nativa */
     padding-bottom: calc(84px + env(safe-area-inset-bottom));
     overflow-x: hidden;
@@ -1656,47 +1699,6 @@ input[type="password"]::-ms-clear {
     width: 20px;
     height: 20px;
     margin-bottom: 0;
-  }
-}
-
-/* ==========================================
-   MEDIA QUERY PARA MÓVILES Y TABLETS (<= 768px)
-   ========================================== */
-@media (max-width: 768px) {
-  .header-mfit {
-    flex-direction: column;
-    padding: 8px 12px;
-    gap: 8px;
-  }
-
-  .header-left-spacer {
-    display: none;
-    /* Se oculta en móvil para aprovechar el espacio */
-  }
-
-  .logo-center-wrapper {
-    height: 54px;
-  }
-
-  .mfit-logo-img {
-    max-height: 52px;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-bottom: 4px;
-  }
-
-  .header-actions .btn {
-    padding: 7px 12px;
-    font-size: 0.78rem;
-  }
-
-  .main-shell {
-    padding: 16px 12px 96px;
   }
 }
 
