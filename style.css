@@ -33,6 +33,7 @@ html {
 body {
   background: linear-gradient(180deg, #fff7f7 0%, #f4f7fb 150px, #f5f7fb 100%);
   color: var(--mfit-negro);
+  padding-top: 80px;
   padding-bottom: 90px;
 }
 
@@ -52,17 +53,19 @@ select {
    CABECERA PREMIUM ROJO MFIT (ADAPTATIVA)
    ========================================== */
 .header-mfit {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 200;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 24px;
+  padding: 8px 16px;
   background: linear-gradient(135deg, #a31119 0%, #d6212a 50%, #870b12 100%);
-  box-shadow: 0 8px 24px rgba(163, 17, 25, 0.45);
+  box-shadow: 0 4px 12px rgba(163, 17, 25, 0.45);
   border-bottom: 2px solid rgba(255, 255, 255, 0.18);
-  gap: 16px;
 }
 
 .header-left-spacer,
@@ -822,6 +825,7 @@ select {
   background: #fee2e2;
   color: #991b1b;
 }
+
 /* ==========================================
    MODALES UNIFICADOS Y RESPONSIVE
    ========================================== */
@@ -843,7 +847,8 @@ select {
 
 .modal-content {
   width: min(420px, 100%);
-  max-height: 90vh; /* Permite scroll interno si la pantalla del móvil es pequeña */
+  max-height: 90vh;
+  /* Permite scroll interno si la pantalla del móvil es pequeña */
   overflow-y: auto;
   background: var(--mfit-blanco);
   border-radius: 20px;
@@ -869,7 +874,7 @@ select {
   outline: none;
   padding: 0;
   margin: 0;
-  
+
   /* Posicionamiento y dimensiones */
   position: absolute;
   top: 14px;
@@ -877,19 +882,19 @@ select {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  
+
   /* Centrado perfecto del SVG */
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* Color rojo corporativo (ajusta el hex si usas otro tono exacto) */
   color: var(--mfit-rojo, #ef4444);
-  
+
   cursor: pointer;
   user-select: none;
   z-index: 10;
-  
+
   /* Transición suave */
   transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
@@ -898,14 +903,17 @@ select {
 .modal-close svg {
   width: 18px;
   height: 18px;
-  pointer-events: none; /* Evita que el SVG interfiera en el clic */
+  pointer-events: none;
+  /* Evita que el SVG interfiera en el clic */
 }
 
 /* Efecto hover: Fondo suave rojizo y rotación ligera */
 .modal-close:hover {
-  background-color: rgba(239, 68, 68, 0.12); /* Fondo translúcido rojo */
+  background-color: rgba(239, 68, 68, 0.12);
+  /* Fondo translúcido rojo */
   color: var(--mfit-rojo, #dc2626);
-  transform: scale(1.08) rotate(90deg); /* Gira suavemente al pasar el ratón */
+  transform: scale(1.08) rotate(90deg);
+  /* Gira suavemente al pasar el ratón */
 }
 
 /* Efecto de clic */
@@ -930,7 +938,8 @@ select {
 
 .password-field input {
   width: 100%;
-  padding-right: 2.75rem; /* Evita que el texto de la contraseña tape el icono */
+  padding-right: 2.75rem;
+  /* Evita que el texto de la contraseña tape el icono */
 }
 
 .password-toggle {
@@ -956,8 +965,10 @@ select {
 .password-toggle svg {
   width: 20px;
   height: 20px;
-  pointer-events: none; /* Evita interferencias en el click */
+  pointer-events: none;
+  /* Evita interferencias en el click */
 }
+
 /* Ocultar el ojo e icono de limpieza nativos de Edge e Internet Explorer */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
@@ -988,7 +999,8 @@ input[type="password"]::-ms-clear {
   .modal-content {
     padding: 20px 16px 16px;
     border-radius: 18px;
-    max-height: 88vh; /* Evita que el teclado virtual tape los botones */
+    max-height: 88vh;
+    /* Evita que el teclado virtual tape los botones */
   }
 
   .modal-content h2 {
@@ -1001,9 +1013,11 @@ input[type="password"]::-ms-clear {
   }
 
   .form-group input {
-    font-size: 16px; /* Previene el zoom automático no deseado en iOS Safari al pulsar los inputs */
+    font-size: 16px;
+    /* Previene el zoom automático no deseado en iOS Safari al pulsar los inputs */
   }
 }
+
 /* ==========================================
    ADMINISTRACIÓN Y LISTAS
    ========================================== */
@@ -1126,7 +1140,8 @@ input[type="password"]::-ms-clear {
 .profile-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px; /* Cambiado de '0 14px' a '14px' para dar separación vertical y horizontal correcta */
+  gap: 14px;
+  /* Cambiado de '0 14px' a '14px' para dar separación vertical y horizontal correcta */
 }
 
 .profile-card-wrap {
@@ -1442,15 +1457,21 @@ input[type="password"]::-ms-clear {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: rgba(255, 255, 255, 0.94);
+  z-index: 1000;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  /* Sombra hacia arriba para destacar que flota */
   display: flex;
   justify-content: space-around;
-  align-items: stretch;
-  padding: 8px 12px 10px;
-  z-index: 300;
+  /* Reparte los iconos equitativamente */
+  align-items: center;
+
+  /* Aquí está la clave: un padding base de 12px, más el espacio de seguridad del móvil */
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
 }
 
 .nav-item {
@@ -1482,40 +1503,59 @@ input[type="password"]::-ms-clear {
   background: rgba(214, 33, 42, 0.08);
 }
 
+.landing-hero::before {
+  content: "";
+  position: absolute;
+  width: 270px;
+  height: 270px;
+  right: -80px;
+  bottom: -80px;
+  /* <--- Cambiado de top a bottom */
+  border: 1px solid rgba(214, 33, 42, 0.15);
+  border-radius: 50%;
+  box-shadow: 0 0 0 24px rgba(214, 33, 42, 0.035), 0 0 0 48px rgba(214, 33, 42, 0.025);
+}
+
+
+
+
 /* ==========================================
    MEDIA QUERIES
    ========================================== */
 @media (max-width: 640px) {
   body {
-    padding-bottom: 84px;
+    /* Mantenemos espacio extra abajo por si el móvil tiene barra inferior nativa */
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
     overflow-x: hidden;
   }
 
   .header-mfit {
-    flex-direction: column;
-    padding: 4px 10px;
+    /* Mantener flex-direction: row para que no se deforme en móvil */
+    flex-direction: row;
+    padding: 8px 12px;
   }
 
-  .header-mfit .logo-center-wrapper {
-    height: 68px;
+  .logo-center-wrapper {
+    height: 48px;
   }
 
-  .header-mfit img {
-    height: 78px;
-    width: auto;
+  .mfit-logo-img {
+    max-height: 48px;
   }
 
-  .header-mfit .header-actions {
-    position: static;
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-    padding-bottom: 6px;
+  .header-actions {
+    gap: 6px;
   }
 
-  .logo-center-wrapper::before {
-    width: 84px;
-    height: 84px;
+  .header-actions .btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    /* Botones ligeramente más compactos */
+  }
+
+  /* Ocultar el espacio en blanco de escritorio para equilibrar */
+  .header-left-spacer {
+    display: none;
   }
 
   .main-shell {
@@ -1536,7 +1576,7 @@ input[type="password"]::-ms-clear {
   .landing-mark {
     position: absolute;
     right: 3%;
-    bottom: -5%;
+    top: -5%;
     z-index: 2;
     width: min(44vw, 460px);
     opacity: 1;
@@ -1618,6 +1658,7 @@ input[type="password"]::-ms-clear {
     margin-bottom: 0;
   }
 }
+
 /* ==========================================
    MEDIA QUERY PARA MÓVILES Y TABLETS (<= 768px)
    ========================================== */
@@ -1629,7 +1670,8 @@ input[type="password"]::-ms-clear {
   }
 
   .header-left-spacer {
-    display: none; /* Se oculta en móvil para aprovechar el espacio */
+    display: none;
+    /* Se oculta en móvil para aprovechar el espacio */
   }
 
   .logo-center-wrapper {
@@ -2204,18 +2246,21 @@ input[type="password"]::-ms-clear {
   border: 0;
   border-radius: inherit;
 }
+
 /* ==========================================
    HOME / PRESENTACION Y RECURRENCIA (EXTRA COMPACTO)
    ========================================== */
 .landing-hero {
   position: relative;
-  min-height: 380px; /* Reducido a 380px para ganar mayor compresión vertical */
+  min-height: 380px;
+  /* Reducido a 380px para ganar mayor compresión vertical */
   display: flex;
   align-items: center;
   overflow: hidden;
   border: 1px solid var(--mfit-borde-glass);
   border-radius: 28px;
-  padding: clamp(16px, 3.5vw, 36px); /* Padding interno más ajustado */
+  padding: clamp(16px, 3.5vw, 36px);
+  /* Padding interno más ajustado */
   background: linear-gradient(115deg, rgba(255, 255, 255, 0.96), rgba(255, 244, 245, 0.9) 56%, rgba(255, 255, 255, 0.74));
   box-shadow: 0 26px 65px rgba(17, 24, 39, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
@@ -2223,7 +2268,8 @@ input[type="password"]::-ms-clear {
 .landing-hero::before {
   content: "";
   position: absolute;
-  width: 270px; /* Círculo decorativo un poco más pequeño */
+  width: 270px;
+  /* Círculo decorativo un poco más pequeño */
   height: 270px;
   right: -80px;
   top: -80px;
@@ -2241,14 +2287,15 @@ input[type="password"]::-ms-clear {
 .landing-copy h1 {
   max-width: 520px;
   margin: 10px 0 8px;
-  font-size: clamp(1.8rem, 4.5vw, 3.8rem); /* Título ligeramente más proporcionado */
+  font-size: clamp(1.8rem, 4.5vw, 3.8rem);
+  /* Título ligeramente más proporcionado */
   line-height: 0.98;
   letter-spacing: -0.04em;
   font-weight: 900;
   color: var(--mfit-negro);
 }
 
-.landing-copy > p {
+.landing-copy>p {
   max-width: 480px;
   color: var(--mfit-gris-700);
   font-size: 0.92rem;
@@ -2282,7 +2329,8 @@ input[type="password"]::-ms-clear {
   right: 2%;
   bottom: -8%;
   z-index: 2;
-  width: min(32vw, 320px); /* Marca de agua optimizada para no ocupar de más */
+  width: min(32vw, 320px);
+  /* Marca de agua optimizada para no ocupar de más */
   opacity: 1;
   transform: rotate(-6deg);
   pointer-events: none;
@@ -2586,6 +2634,7 @@ input[type="password"]::-ms-clear {
   color: var(--mfit-negro);
   text-align: center;
 }
+
 /* ==========================================
    NOVEDADES - Tablón de Anuncios Moderno
    ========================================== */
