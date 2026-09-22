@@ -637,7 +637,7 @@ function renderCalendar() {
     const inner = [];
 
     inner.push(`<span class="calendar-day-number">${date.getDate()}</span>`);
-    if (holiday) inner.push(`<span class="day-holiday-tag">${holiday}</span>`);
+    if (holiday) inner.push(`<span class="day-holiday-tag" title="${holiday}">${holiday}</span>`);
     if (activityList.length) inner.push(`<span class="day-activity-count">${activityList.length} act.</span>`);
 
     button.innerHTML = inner.join('');
@@ -656,7 +656,17 @@ function renderSelectedDay() {
   if (!title || !container) return;
 
   const date = new Date(state.selectedDate);
-  title.textContent = 'Actividades del ' + date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  // --- AQUÍ ESTÁ EL CAMBIO ---
+  const formattedDate = date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const holiday = getSpanishHolidayName(date);
+
+  if (holiday) {
+    title.innerHTML = `Actividades del ${formattedDate} <span style="display:block; font-size:0.9rem; color:#b45309; margin-top:4px;">🎉 ${holiday}</span>`;
+  } else {
+    title.textContent = 'Actividades del ' + formattedDate;
+  }
+  // ---------------------------
 
   const activities = getActivityForDate(date);
   if (!activities.length) {

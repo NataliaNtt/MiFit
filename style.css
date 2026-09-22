@@ -306,6 +306,7 @@ select {
 }
 
 .calendar-day {
+  overflow: hidden;
   min-height: 78px;
   border: 1px solid var(--mfit-gris-200);
   border-radius: 14px;
@@ -320,6 +321,7 @@ select {
   text-align: left;
   cursor: pointer;
   transition: all 0.18s ease;
+  min-width: 0;
 }
 
 .calendar-day:hover {
@@ -358,8 +360,15 @@ select {
 }
 
 .day-holiday-tag {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;        /* Máximo 2 líneas de texto */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;          /* Permite que el texto baje de línea */
+  word-break: break-word;
   color: #b45309;
   font-weight: 700;
+  line-height: 1.1;
 }
 
 .calendar-day-panel {
@@ -411,6 +420,22 @@ select {
   gap: 8px 12px;
   font-size: 0.8rem;
   color: var(--mfit-gris-700);
+}
+
+/* Reglas específicas para móviles */
+@media (max-width: 600px) {
+  .calendar-day {
+    padding: 2px 1px;
+    min-height: 60px;     /* Opcional: reduce ligeramente la altura en pantallas muy pequeñas */
+  }
+
+  .day-holiday-tag {
+    font-size: 0.55rem;
+  }
+
+  .day-activity-count {
+    font-size: 0.55rem;
+  }
 }
 
 /* ==========================================
@@ -566,6 +591,8 @@ select {
    ========================================== */
 .center-subnav {
   display: flex;
+  justify-content: center; /* Centra los botones horizontalmente */
+  flex-wrap: wrap;
   gap: 8px;
   overflow-x: auto;
   margin-bottom: 18px;
@@ -1571,7 +1598,21 @@ input[type="password"]::-ms-clear {
     padding-bottom: calc(84px + env(safe-area-inset-bottom));
     overflow-x: hidden;
   }
+.center-subnav {
+    display: flex;
+    justify-content: flex-start; /* Permite deslizar desde el primer elemento sin recortarlo */
+    flex-wrap: nowrap;          /* Mantiene todos los botones en una sola fila */
+    overflow-x: auto;           /* Activa el desplazamiento horizontal */
+    white-space: nowrap;        /* Evita que el texto de los botones se divida */
+    padding-left: 12px;         /* Margen interno para que el primer botón no quede pegado al borde */
+    padding-right: 12px;        /* Margen interno para el último botón al deslizar */
+    -webkit-overflow-scrolling: touch; /* Desplazamiento fluido y suave en iOS */
+  }
 
+  /* Evita que los botones se compriman o deformen para intentar caber */
+  .center-subnav .subnav-btn {
+    flex-shrink: 0;             
+  }
   .header-mfit {
     /* Mantener flex-direction: row para que no se deforme en móvil */
     flex-direction: row;
