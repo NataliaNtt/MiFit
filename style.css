@@ -79,6 +79,13 @@ select {
   justify-content: flex-end;
   gap: 10px;
 }
+/* Oculta "Registrarse" e "Iniciar sesión" únicamente cuando hay un botón de cerrar sesión */
+.header-actions:has(#logout-btn) #register-toggle-btn,
+.header-actions:has(.btn-logout) #register-toggle-btn,
+.header-actions:has(#logout-btn) #login-toggle-btn,
+.header-actions:has(.btn-logout) #login-toggle-btn {
+  display: none !important;
+}
 
 .logo-center-wrapper {
   flex: 0 0 auto;
@@ -1547,39 +1554,36 @@ input[type="password"]::-ms-clear {
    MEDIA QUERY PARA MÓVILES Y TABLETS (<= 768px)
    ========================================== */
 @media (max-width: 768px) {
-  body {
-    padding-top: 110px; /* Ajuste para tablets si se apila */
-  }
-  .header-mfit {
-    flex-direction: column;
-    padding: 8px 12px;
-    gap: 8px;
+ body {
+    padding-top: 80px; /* Asegura el espacio suficiente bajo la cabecera */
   }
 
-  .header-left-spacer {
-    display: none;
-    /* Se oculta en móvil para aprovechar el espacio */
+  .header-mfit {
+    flex-direction: row !important; /* Mantiene la cabecera en una sola fila */
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
   }
 
   .logo-center-wrapper {
-    height: 54px;
+    height: 48px;
   }
 
   .mfit-logo-img {
-    max-height: 52px;
+    max-height: 48px;
   }
 
   .header-actions {
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-bottom: 4px;
+    width: auto;
+    flex-wrap: nowrap; /* Evita que los botones de admin bajen de línea */
+    justify-content: flex-end;
+    gap: 6px;
   }
 
   .header-actions .btn {
-    padding: 7px 12px;
-    font-size: 0.78rem;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    white-space: nowrap; /* Mantiene los textos en un solo renglón */
   }
 
   .main-shell {

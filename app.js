@@ -322,15 +322,7 @@ async function handleRegisterSubmit(event) {
   }
 }
 
-// En la función attachEvents(), añade los listeners:
-document.getElementById('register-form')?.addEventListener('submit', handleRegisterSubmit);
-document.getElementById('close-register-modal')?.addEventListener('click', () => {
-  document.getElementById('register-modal').classList.add('hidden');
-});
-// Botón para abrir el registro (debes añadir un botón con id="register-toggle-btn" en tu header HTML)
-document.getElementById('register-toggle-btn')?.addEventListener('click', () => {
-  document.getElementById('register-modal').classList.remove('hidden');
-});
+
 
 
 
@@ -981,10 +973,10 @@ async function syncAuthenticatedUser(firebaseUser) {
 
   const profileSnapshot = await db.collection('users').doc(firebaseUser.uid).get().catch(() => null);
   const profile = profileSnapshot && profileSnapshot.exists ? profileSnapshot.data() : {};
-  
+
   // Búsqueda segura en el estado local
   const existing = state.users.find(item => item.id === firebaseUser.uid || (item.email && item.email.toLowerCase() === userEmail));
-  
+
   // Asignación de rol sin que 'adminEmails' provoque un fallo
   const role = profile.role || (adminList.includes(userEmail) ? 'admin' : existing?.role || 'cliente');
 
@@ -996,13 +988,13 @@ async function syncAuthenticatedUser(firebaseUser) {
     existing.profileHistory = profile.profileHistory || existing.profileHistory || [];
     state.currentUserId = firebaseUser.uid;
   } else {
-    state.users.push({ 
-      id: firebaseUser.uid, 
-      name: profile.name || firebaseUser.displayName || userEmail.split('@')[0] || 'Usuario', 
-      email: firebaseUser.email, 
-      role, 
-      profile: profile.profile || {}, 
-      profileHistory: profile.profileHistory || [] 
+    state.users.push({
+      id: firebaseUser.uid,
+      name: profile.name || firebaseUser.displayName || userEmail.split('@')[0] || 'Usuario',
+      email: firebaseUser.email,
+      role,
+      profile: profile.profile || {},
+      profileHistory: profile.profileHistory || []
     });
     state.currentUserId = firebaseUser.uid;
   }
@@ -1032,6 +1024,7 @@ function renderHeader() {
   const user = getCurrentUser();
   const badge = document.getElementById('user-role-badge');
   const loginBtn = document.getElementById('login-toggle-btn');
+  const registerBtn = document.getElementById('register-toggle-btn'); // 1. Capturamos el botón de registro
   const adminTabs = document.querySelectorAll('.admin-only-tab'); // Selecciona tanto Admin como Clientes
   const contactTab = document.querySelector('[data-tab="contacto"]');
   const contactForm = document.getElementById('contact-form');
@@ -1055,14 +1048,18 @@ function renderHeader() {
     }
   }
 
+// Si no hay usuario (Invitado)
   if (!user) {
     if (badge) badge.textContent = 'Invitado';
     if (loginBtn) loginBtn.textContent = 'Iniciar sesión';
+    if (registerBtn) registerBtn.style.display = 'inline-block'; // 2. Mostramos el botón
     return;
   }
 
+  // Si hay usuario logueado
   if (badge) badge.textContent = user.name + (user.role === 'admin' ? ' · Admin' : '');
   if (loginBtn) loginBtn.textContent = 'Cerrar sesión';
+  if (registerBtn) registerBtn.style.display = 'none'; // 3. Ocultamos el botón
 }
 async function handleLoginSubmit(event) {
   event.preventDefault();
@@ -1099,13 +1096,13 @@ function togglePasswordVisibility(inputId, toggleId) {
   if (!passwordInput || !toggleBtn) return;
 
   const isHidden = passwordInput.type === 'password';
-  
+
   // Cambia el tipo de input
   passwordInput.type = isHidden ? 'text' : 'password';
-  
+
   // Cambia el SVG interno
   toggleBtn.innerHTML = isHidden ? EYE_CLOSED_SVG : EYE_OPEN_SVG;
-  
+
   // Actualiza accesibilidad y tooltip
   const label = isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña';
   toggleBtn.setAttribute('aria-label', label);
@@ -1636,29 +1633,29 @@ async function handleAdminTeamSubmit(event) {
   mfitData.team.push({ id: Date.now(), name: document.getElementById('team-name').value.trim(), role: document.getElementById('team-role').value.trim(), spec: document.getElementById('team-spec').value.trim(), bio: document.getElementById('team-bio').value.trim(), image, active: true });
   event.target.reset();
   persistContent();
-    toastSuccess('¡Nuevo entrenador añadido al equipo con éxito!');
+  toastSuccess('¡Nuevo entrenador añadido al equipo con éxito!');
 
 }
 
 async function handleAdminGallerySubmit(event) {
   event.preventDefault();
-  
+
   // Captura el archivo seleccionado desde el ordenador
   const file = document.getElementById('gallery-file').files[0];
-  
+
   // Sube la imagen usando tu función y obtiene la URL
   const url = file ? await uploadImage(file, 'gallery') : document.getElementById('gallery-url').value.trim();
-  
+
   if (!url) return;
-  
+
   // Guarda los datos en el sistema
-  mfitData.gallery.push({ 
-    id: Date.now(), 
-    url, 
-    caption: document.getElementById('gallery-caption').value.trim(), 
-    active: true 
+  mfitData.gallery.push({
+    id: Date.now(),
+    url,
+    caption: document.getElementById('gallery-caption').value.trim(),
+    active: true
   });
-  
+
   event.target.reset();
   persistContent();
   toastSuccess('¡Nueva foto añadida a la galería con éxito!');
@@ -1995,6 +1992,24 @@ function handleContactFormSubmit(event) {
 }
 
 function attachEvents() {
+  // --- Listeners para Modal de Registro ---
+  document.getElementById('register-form')?.addEventListener('submit', handleRegisterSubmit);
+  document.getElementById('close-register-modal')?.addEventListener('click', () => {
+    document.getElementById('register-modal').classList.add('hidden');
+  });
+  document.getElementById('register-toggle-btn')?.addEventListener('click', () => {
+    document.getElementById('register-modal').classList.remove('hidden');
+  });
+
+  // --- Visibilidad de contraseña ---
+  document.getElementById('toggle-password')?.addEventListener('click', () => {
+    togglePasswordVisibility('login-password', 'toggle-password');
+  });
+  document.getElementById('toggle-register-password')?.addEventListener('click', () => {
+    togglePasswordVisibility('register-password', 'toggle-register-password');
+  });
+
+  // --- Navegación y Vistas ---
   document.querySelectorAll('[data-open-editor]').forEach(button => {
     button.addEventListener('click', () => {
       if (!isAdmin()) return;
@@ -2010,15 +2025,7 @@ function attachEvents() {
       }
     });
   });
-// Evento para el modal de Inicio de Sesión
-document.getElementById('toggle-password')?.addEventListener('click', () => {
-  togglePasswordVisibility('login-password', 'toggle-password');
-});
 
-// Evento para el modal de Registro
-document.getElementById('toggle-register-password')?.addEventListener('click', () => {
-  togglePasswordVisibility('register-password', 'toggle-register-password');
-});
   document.querySelectorAll('.nav-item').forEach(button => {
     button.addEventListener('click', () => {
       const target = document.getElementById(button.dataset.view);
@@ -2056,10 +2063,11 @@ document.getElementById('toggle-register-password')?.addEventListener('click', (
     });
   });
 
-  document.getElementById('activity-recurrence').addEventListener('change', event => {
+  // --- Controles de Calendario y Formularios ---
+  document.getElementById('activity-recurrence')?.addEventListener('change', event => {
     const options = document.getElementById('recurrence-options');
     const isWeekly = event.target.value === 'weekly';
-    options.classList.toggle('hidden', !isWeekly);
+    options?.classList.toggle('hidden', !isWeekly);
     if (isWeekly && !document.querySelector('input[name="recurrence-day"]:checked')) {
       const startDate = new Date(`${document.getElementById('activity-date').value}T00:00:00`);
       const weekday = startDate.getDay();
@@ -2068,22 +2076,22 @@ document.getElementById('toggle-register-password')?.addEventListener('click', (
     }
   });
 
-  document.getElementById('service-billing-type').addEventListener('change', event => {
+  document.getElementById('service-billing-type')?.addEventListener('change', event => {
     const sessionsField = document.getElementById('service-sessions-field');
     const daysField = document.getElementById('service-days-field');
     const sessions = event.target.value === 'sessions';
-    sessionsField.classList.toggle('hidden', !sessions);
-    daysField.classList.toggle('hidden', sessions);
+    sessionsField?.classList.toggle('hidden', !sessions);
+    daysField?.classList.toggle('hidden', sessions);
   });
 
-  document.getElementById('year-select').addEventListener('change', (event) => {
+  document.getElementById('year-select')?.addEventListener('change', (event) => {
     state.currentYear = Number(event.target.value);
     state.selectedDate = new Date(state.currentYear, state.currentMonth, 1);
     renderCalendar();
     renderSelectedDay();
   });
 
-  document.getElementById('prev-month-btn').addEventListener('click', () => {
+  document.getElementById('prev-month-btn')?.addEventListener('click', () => {
     state.currentMonth -= 1;
     if (state.currentMonth < 0) {
       state.currentMonth = 11;
@@ -2094,7 +2102,7 @@ document.getElementById('toggle-register-password')?.addEventListener('click', (
     renderSelectedDay();
   });
 
-  document.getElementById('next-month-btn').addEventListener('click', () => {
+  document.getElementById('next-month-btn')?.addEventListener('click', () => {
     state.currentMonth += 1;
     if (state.currentMonth > 11) {
       state.currentMonth = 0;
@@ -2105,8 +2113,9 @@ document.getElementById('toggle-register-password')?.addEventListener('click', (
     renderSelectedDay();
   });
 
-  document.getElementById('close-login-modal').addEventListener('click', closeLoginModal);
-  document.getElementById('login-toggle-btn').addEventListener('click', () => {
+  // --- Formularios y Autenticación ---
+  document.getElementById('close-login-modal')?.addEventListener('click', closeLoginModal);
+  document.getElementById('login-toggle-btn')?.addEventListener('click', () => {
     const user = getCurrentUser();
     if (user) {
       handleLogout();
@@ -2115,20 +2124,19 @@ document.getElementById('toggle-register-password')?.addEventListener('click', (
     openLoginModal();
   });
 
-  document.getElementById('login-form').addEventListener('submit', handleLoginSubmit);
-  document.getElementById('toggle-password').addEventListener('click', togglePasswordVisibility);
-  document.getElementById('reset-password-btn').addEventListener('click', handlePasswordReset);
-  document.getElementById('contact-form').addEventListener('submit', handleContactFormSubmit);
-  document.getElementById('profile-goals-form').addEventListener('submit', handleProfileGoalsSubmit);
-  document.getElementById('admin-service-form').addEventListener('submit', handleAdminServiceSubmit);
-  document.getElementById('admin-user-form').addEventListener('submit', handleAdminUserSubmit);
-  document.getElementById('admin-info-form').addEventListener('submit', handleAdminInfoSubmit);
-  document.getElementById('admin-activity-form').addEventListener('submit', handleAdminActivitySubmit);
-  document.getElementById('admin-center-service-form').addEventListener('submit', handleAdminCenterServiceSubmit);
-  document.getElementById('admin-team-form').addEventListener('submit', handleAdminTeamSubmit);
-  document.getElementById('admin-gallery-form').addEventListener('submit', handleAdminGallerySubmit);
-  document.getElementById('admin-news-form').addEventListener('submit', handleAdminNewsSubmit);
-  document.getElementById('close-gallery-modal').addEventListener('click', () => document.getElementById('gallery-modal').classList.add('hidden'));
+  document.getElementById('login-form')?.addEventListener('submit', handleLoginSubmit);
+  document.getElementById('reset-password-btn')?.addEventListener('click', handlePasswordReset);
+  document.getElementById('contact-form')?.addEventListener('submit', handleContactFormSubmit);
+  document.getElementById('profile-goals-form')?.addEventListener('submit', handleProfileGoalsSubmit);
+  document.getElementById('admin-service-form')?.addEventListener('submit', handleAdminServiceSubmit);
+  document.getElementById('admin-user-form')?.addEventListener('submit', handleAdminUserSubmit);
+  document.getElementById('admin-info-form')?.addEventListener('submit', handleAdminInfoSubmit);
+  document.getElementById('admin-activity-form')?.addEventListener('submit', handleAdminActivitySubmit);
+  document.getElementById('admin-center-service-form')?.addEventListener('submit', handleAdminCenterServiceSubmit);
+  document.getElementById('admin-team-form')?.addEventListener('submit', handleAdminTeamSubmit);
+  document.getElementById('admin-gallery-form')?.addEventListener('submit', handleAdminGallerySubmit);
+  document.getElementById('admin-news-form')?.addEventListener('submit', handleAdminNewsSubmit);
+  document.getElementById('close-gallery-modal')?.addEventListener('click', () => document.getElementById('gallery-modal')?.classList.add('hidden'));
   document.getElementById('image-manager-upload-btn')?.addEventListener('click', handleImageManagerUpload);
 }
 
