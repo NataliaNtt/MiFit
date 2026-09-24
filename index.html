@@ -8,6 +8,9 @@
 <link rel="manifest" href="manifest.json">
 <!-- Icono para dispositivos iOS (Apple) -->
 <link rel="apple-touch-icon" href="MIFITapp.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#d6212a" />
 </head>
@@ -24,6 +27,7 @@
 
     <!-- Acciones del usuario a la derecha -->
     <div class="header-actions">
+      <button type="button" class="btn premium-cta-btn" id="header-premium-btn" title="Zona Premium MIFIT">Premium</button>
       <span class="user-badge" id="user-role-badge">Invitado</span>
       <button class="btn btn-light btn-sm" id="login-toggle-btn">Iniciar sesión</button>
       <button class="btn btn-light btn-sm" id="register-toggle-btn">Registrarse</button>
@@ -114,6 +118,10 @@
       <div id="bonos-list" class="catalog-grid"></div>
     </section>
     <section id="view-centro" class="view">
+      <div class="center-subnav-wrap">
+      <button type="button" class="subnav-arrow" data-subnav-scroll="left" aria-label="Desplazar el menú a la izquierda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
       <div class="center-subnav">
         <button class="subnav-btn active" data-tab="info">Info</button>
         <button class="subnav-btn" data-tab="servicios">Servicios</button>
@@ -122,7 +130,12 @@
         <button class="subnav-btn" data-tab="novedades">Novedades</button>
         <button class="subnav-btn" data-tab="contacto">Contacto</button>
         <button class="subnav-btn admin-only-tab" data-tab="clientes" style="display:none;">Clientes</button>
+        <button class="subnav-btn admin-only-tab premium-tab-btn" data-tab="premium" style="display:none;">Premium</button>
         <button class="subnav-btn admin-only-tab" data-tab="admin" style="display:none;">Admin</button>
+      </div>
+      <button type="button" class="subnav-arrow" data-subnav-scroll="right" aria-label="Desplazar el menú a la derecha">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
       </div>
 
       <div id="tab-info" class="center-tab active">
@@ -249,213 +262,307 @@
         </div>
       </div>
 
+      <!-- PESTAÑA PREMIUM (Publicación de contenido exclusivo para clientes Premium) -->
+      <div id="tab-premium" class="center-tab">
+        <div class="admin-panel">
+          <div class="admin-intro premium-intro">
+            <span class="premium-pill">★ Premium</span>
+            <h2>Contenido Premium</h2>
+            <p>Redacta publicaciones, anuncios o recursos exclusivos. Solo los clientes marcados como Premium podrán
+              verlos en su «Zona Premium».</p>
+          </div>
+
+          <div class="admin-section premium-admin-section">
+            <h3>Nueva publicación Premium</h3>
+            <p class="admin-help">El título y el contenido son obligatorios. La fecha se asigna automáticamente al
+              publicar. La imagen es opcional.</p>
+            <form id="admin-premium-form" class="stack-form">
+              <div class="form-group">
+                <label>Título</label>
+                <input type="text" id="premium-title" required placeholder="Ej: Rutina de fuerza de octubre" />
+              </div>
+              <div class="form-group">
+                <label>Contenido</label>
+                <textarea id="premium-content" rows="5" required
+                  placeholder="Escribe aquí el contenido exclusivo para tus clientes Premium..."></textarea>
+              </div>
+              <div class="form-group">
+                <label>Tipo</label>
+                <select id="premium-type" class="form-control">
+                  <option value="Publicación">Publicación</option>
+                  <option value="Anuncio">Anuncio</option>
+                  <option value="Recurso">Recurso</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Audiencia</label>
+                <select id="premium-audience" class="form-control">
+                  <option value="all">Todos los Premium</option>
+                  <option value="client">Cliente específico</option>
+                </select>
+              </div>
+              <div class="form-group hidden" id="premium-client-group">
+                <label>Cliente destinatario</label>
+                <select id="premium-client" class="form-control"></select>
+                <small class="admin-help">Solo ese cliente verá esta publicación. Ningún otro usuario tendrá acceso.</small>
+              </div>
+              <div class="form-group">
+                <label>Foto (opcional)</label>
+                <input type="file" id="premium-image" accept="image/*" class="form-control" />
+                <img id="premium-image-preview" class="premium-image-preview" alt="Vista previa de la imagen"
+                  style="display:none; max-width:100%; border-radius:12px; margin-top:10px;" />
+              </div>
+              <button type="submit" class="btn btn-primary">Publicar contenido Premium</button>
+            </form>
+            <div id="admin-premium-content" class="admin-list"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- PESTAÑA ADMIN (Contiene exclusivamente las herramientas de gestión de la aplicación) -->
       <div id="tab-admin" class="center-tab">
         <div class="admin-panel">
 
           <div id="admin-purchases-section" class="admin-section">
-            <h3>Compras pendientes</h3>
-            <p class="admin-help">Revisa las solicitudes de bonos y aprueba las que ya estén confirmadas.</p>
-            <div id="admin-purchases" class="admin-list"></div>
-            <h3 class="admin-subheading">Bonos activos</h3>
-            <div id="admin-active-purchases" class="admin-list"></div>
+            <details class="admin-collapsible" open>
+              <summary><h3>Compras pendientes</h3></summary>
+              <p class="admin-help">Revisa las solicitudes de bonos y aprueba las que ya estén confirmadas.</p>
+              <div id="admin-purchases" class="admin-list"></div>
+            </details>
+            <details class="admin-collapsible">
+              <summary><h3>Bonos activos</h3></summary>
+              <div id="admin-active-purchases" class="admin-list"></div>
+            </details>
           </div>
 
           <div id="admin-history-section" class="admin-section">
-            <h3>Histórico de transacciones</h3>
-            <p class="admin-help">Registro de bonos aprobados y operaciones conservado en Firebase.</p>
-            <div id="admin-purchase-history" class="admin-list"></div>
+            <details class="admin-collapsible">
+              <summary><h3>Histórico de transacciones</h3></summary>
+              <p class="admin-help">Registro de bonos aprobados y operaciones conservado en Firebase.</p>
+              <div id="admin-purchase-history" class="admin-list"></div>
+            </details>
           </div>
 
           <div id="admin-attendance-section" class="admin-section">
-            <h3>Control de asistencia</h3>
-            <p class="admin-help">Confirma quién ha asistido a cada clase. La asistencia queda registrada y actualiza el
-              bono del cliente.</p>
-            <div id="admin-attendance" class="admin-list"></div>
+            <details class="admin-collapsible">
+              <summary><h3>Control de asistencia</h3></summary>
+              <p class="admin-help">Confirma quién ha asistido a cada clase. La asistencia queda registrada y actualiza el
+                bono del cliente.</p>
+              <div id="admin-attendance" class="admin-list"></div>
+            </details>
           </div>
 
 
           <div id="admin-contact-section" class="admin-section">
-            <h3>Mensajes de contacto</h3>
-            <p class="admin-help">Aquí aparecen los mensajes enviados por clientes o visitantes desde la pestaña
-              Contacto.</p>
-            <div id="admin-consultas" class="admin-list"></div>
+            <details class="admin-collapsible">
+              <summary><h3>Mensajes de contacto</h3></summary>
+              <p class="admin-help">Aquí aparecen los mensajes enviados por clientes o visitantes desde la pestaña
+                Contacto.</p>
+              <div id="admin-consultas" class="admin-list"></div>
+            </details>
           </div>
 
           <div id="admin-info-section" class="admin-section admin-editor-section">
-            <h3>Contenido del centro</h3>
-            <p class="admin-help">Edita el nombre, descripción, contacto y foto principal que aparecen en la sección
-              Info.</p>
-            <form id="admin-info-form" class="stack-form">
-              <div class="form-group"><label>Nombre del centro</label><input type="text" id="info-name" required />
-              </div>
-              <div class="form-group"><label>Descripción</label><textarea id="info-description" rows="3"
-                  required></textarea></div>
-              <div class="form-group"><label>Dirección</label><input type="text" id="info-address" required /></div>
-              <div class="form-group"><label>Teléfono</label><input type="text" id="info-phone" required /></div>
-              <div class="form-group"><label>WhatsApp</label><input type="text" id="info-whatsapp" required /></div>
-              <div class="form-group"><label>Email</label><input type="email" id="info-email" required /></div>
-              <div class="form-group"><label>Imagen principal (URL o archivo)</label><input type="url"
-                  id="info-hero-image" /><input type="file" id="info-hero-file" accept="image/*" /></div>
-              <button type="submit" class="btn btn-primary">Guardar contenido</button>
-            </form>
+            <details class="admin-collapsible">
+              <summary><h3>Contenido del centro</h3></summary>
+              <p class="admin-help">Edita el nombre, descripción, contacto y foto principal que aparecen en la sección
+                Info.</p>
+              <form id="admin-info-form" class="stack-form">
+                <div class="form-group"><label>Nombre del centro</label><input type="text" id="info-name" required />
+                </div>
+                <div class="form-group"><label>Descripción</label><textarea id="info-description" rows="3"
+                    required></textarea></div>
+                <div class="form-group"><label>Dirección</label><input type="text" id="info-address" required /></div>
+                <div class="form-group"><label>Teléfono</label><input type="text" id="info-phone" required /></div>
+                <div class="form-group"><label>WhatsApp</label><input type="text" id="info-whatsapp" required /></div>
+                <div class="form-group"><label>Email</label><input type="email" id="info-email" required /></div>
+                <div class="form-group"><label>Imagen principal (URL o archivo)</label><input type="url"
+                    id="info-hero-image" /><input type="file" id="info-hero-file" accept="image/*" /></div>
+                <button type="submit" class="btn btn-primary">Guardar contenido</button>
+              </form>
+            </details>
           </div>
 
           <div id="admin-activities-section" class="admin-section admin-editor-section">
-            <h3>Actividades del calendario</h3>
-            <p class="admin-help">Crea las clases que aparecerán en el calendario para que los clientes puedan reservar
-              plaza.</p>
-            <form id="admin-activity-form" class="stack-form">
-              <div class="form-group"><label>Actividad</label><input type="text" id="activity-title" required /></div>
-              <div class="form-group"><label>Fecha de inicio</label><input type="date" id="activity-date" required />
-              </div>
-              <div class="form-group"><label>Hora</label><input type="time" id="activity-time" required /></div>
-              <div class="form-group recurrence-fields">
-                <label for="activity-recurrence">Repetición</label>
-                <select id="activity-recurrence" class="form-control">
-                  <option value="none">Una sola clase</option>
-                  <option value="weekly">Cada semana</option>
-                </select>
-              </div>
-              <div id="recurrence-options" class="recurrence-options hidden">
-                <div class="form-group"><label>Días de la semana</label>
-                  <div class="weekday-picker">
-                    <label><input type="checkbox" name="recurrence-day" value="1" /> Lu</label><label><input
-                        type="checkbox" name="recurrence-day" value="2" /> Ma</label><label><input type="checkbox"
-                        name="recurrence-day" value="3" /> Mi</label><label><input type="checkbox" name="recurrence-day"
-                        value="4" /> Ju</label><label><input type="checkbox" name="recurrence-day" value="5" />
-                      Vi</label><label><input type="checkbox" name="recurrence-day" value="6" /> Sa</label><label><input
-                        type="checkbox" name="recurrence-day" value="0" /> Do</label>
-                  </div>
+            <details class="admin-collapsible">
+              <summary><h3>Actividades del calendario</h3></summary>
+              <p class="admin-help">Crea las clases que aparecerán en el calendario para que los clientes puedan reservar
+                plaza.</p>
+              <form id="admin-activity-form" class="stack-form">
+                <div class="form-group"><label>Actividad</label><input type="text" id="activity-title" required /></div>
+                <div class="form-group"><label>Fecha de inicio</label><input type="date" id="activity-date" required />
                 </div>
-                <div class="form-group"><label for="activity-weeks">Durante</label><input type="number"
-                    id="activity-weeks" min="1" max="52" value="4" /><span class="field-suffix">semanas</span></div>
-              </div>
-              <div class="form-group"><label>Entrenador</label><input type="text" id="activity-coach" required /></div>
-              <div class="form-group"><label>Duración (minutos)</label><input type="number" id="activity-duration"
-                  min="1" value="45" required /></div>
-              <div class="form-group"><label>Plazas</label><input type="number" id="activity-capacity" min="1"
-                  value="12" required /></div>
-              <div class="form-group"><label>Descripción</label><input type="text" id="activity-description" required />
-              </div>
-              <button type="submit" class="btn btn-primary">Añadir actividad</button>
-            </form>
-            <div id="admin-activities" class="admin-list"></div>
+                <div class="form-group"><label>Hora</label><input type="time" id="activity-time" required /></div>
+                <div class="form-group recurrence-fields">
+                  <label for="activity-recurrence">Repetición</label>
+                  <select id="activity-recurrence" class="form-control">
+                    <option value="none">Una sola clase</option>
+                    <option value="weekly">Cada semana</option>
+                  </select>
+                </div>
+                <div id="recurrence-options" class="recurrence-options hidden">
+                  <div class="form-group"><label>Días de la semana</label>
+                    <div class="weekday-picker">
+                      <label><input type="checkbox" name="recurrence-day" value="1" /> Lu</label><label><input
+                          type="checkbox" name="recurrence-day" value="2" /> Ma</label><label><input type="checkbox"
+                          name="recurrence-day" value="3" /> Mi</label><label><input type="checkbox" name="recurrence-day"
+                          value="4" /> Ju</label><label><input type="checkbox" name="recurrence-day" value="5" />
+                        Vi</label><label><input type="checkbox" name="recurrence-day" value="6" /> Sa</label><label><input type="checkbox" name="recurrence-day" value="0" /> Do</label>
+                    </div>
+                  </div>
+                  <div class="form-group"><label for="activity-weeks">Durante</label><input type="number"
+                      id="activity-weeks" min="1" max="52" value="4" /><span class="field-suffix">semanas</span></div>
+                </div>
+                <div class="form-group"><label>Entrenador</label><input type="text" id="activity-coach" required /></div>
+                <div class="form-group"><label>Duración (minutos)</label><input type="number" id="activity-duration"
+                    min="1" value="45" required /></div>
+                <div class="form-group"><label>Plazas</label><input type="number" id="activity-capacity" min="1"
+                    value="12" required /></div>
+                <div class="form-group"><label>Descripción</label><input type="text" id="activity-description" required />
+                </div>
+                <button type="submit" class="btn btn-primary">Añadir actividad</button>
+              </form>
+              <div id="admin-activities" class="admin-list"></div>
+            </details>
           </div>
 
           <div id="admin-center-services-section" class="admin-section admin-editor-section">
-            <h3>Servicios del centro</h3>
-            <p class="admin-help">Añade los servicios que se muestran en la pestaña Servicios del centro.</p>
-            <form id="admin-center-service-form" class="stack-form">
-              <div class="form-group"><label>Nombre</label><input type="text" id="center-service-name" required /></div>
-              <div class="form-group"><label>Descripción</label><textarea id="center-service-desc" rows="2"
-                  required></textarea></div>
-              <div class="form-group"><label>Imagen (URL o archivo)</label><input type="url"
-                  id="center-service-image" /><input type="file" id="center-service-file" accept="image/*" /></div>
-              <button type="submit" class="btn btn-primary">Añadir servicio del centro</button>
-            </form>
-            <div id="admin-center-services" class="admin-list"></div>
+            <details class="admin-collapsible">
+              <summary><h3>Servicios del centro</h3></summary>
+              <p class="admin-help">Añade los servicios que se muestran en la pestaña Servicios del centro.</p>
+              <form id="admin-center-service-form" class="stack-form">
+                <div class="form-group"><label>Nombre</label><input type="text" id="center-service-name" required /></div>
+                <div class="form-group"><label>Descripción</label><textarea id="center-service-desc" rows="2"
+                    required></textarea></div>
+                <div class="form-group"><label>Imagen (URL o archivo)</label><input type="url"
+                    id="center-service-image" /><input type="file" id="center-service-file" accept="image/*" /></div>
+                <button type="submit" class="btn btn-primary">Añadir servicio del centro</button>
+              </form>
+              <div id="admin-center-services" class="admin-list"></div>
+            </details>
           </div>
 
           <div id="admin-team-section" class="admin-section admin-editor-section">
-            <h3>Equipo</h3>
-            <p class="admin-help">Presenta a entrenadores y profesionales con su foto, cargo y especialidad.</p>
-            <form id="admin-team-form" class="stack-form">
-              <div class="form-group"><label>Nombre</label><input type="text" id="team-name" required /></div>
-              <div class="form-group"><label>Cargo</label><input type="text" id="team-role" required /></div>
-              <div class="form-group"><label>Especialidad</label><input type="text" id="team-spec" required /></div>
-              <div class="form-group"><label>Biografía</label><input type="text" id="team-bio" required /></div>
-              <div class="form-group"><label>Imagen (URL o archivo)</label><input type="url" id="team-image" /><input
-                  type="file" id="team-file" accept="image/*" /></div>
-              <button type="submit" class="btn btn-primary">Añadir persona</button>
-            </form>
-            <div id="admin-team" class="admin-list"></div>
+            <details class="admin-collapsible">
+              <summary><h3>Equipo</h3></summary>
+              <p class="admin-help">Presenta a entrenadores y profesionales con su foto, cargo y especialidad.</p>
+              <form id="admin-team-form" class="stack-form">
+                <div class="form-group"><label>Nombre</label><input type="text" id="team-name" required /></div>
+                <div class="form-group"><label>Cargo</label><input type="text" id="team-role" required /></div>
+                <div class="form-group"><label>Especialidad</label><input type="text" id="team-spec" required /></div>
+                <div class="form-group"><label>Biografía</label><input type="text" id="team-bio" required /></div>
+                <div class="form-group"><label>Imagen (URL o archivo)</label><input type="url" id="team-image" /><input
+                    type="file" id="team-file" accept="image/*" /></div>
+                <button type="submit" class="btn btn-primary">Añadir persona</button>
+              </form>
+              <div id="admin-team" class="admin-list"></div>
+            </details>
           </div>
 
           <div id="admin-gallery-news-section" class="admin-section admin-editor-section">
-            <h3>Galería y novedades</h3>
-            <p class="admin-help">Publica fotos y avisos para mantener actualizada la información del centro.</p>
-            <form id="admin-gallery-form" class="stack-form">
-              <div class="form-group"><label>Foto de galería (URL o archivo)</label>
-                <input type="file" id="gallery-file" accept="image/jpeg, image/png, image/webp" />
-              <div class="form-group"><label>Texto de la foto</label><input type="text" id="gallery-caption" required />
-              </div>
-              <button type="submit" class="btn btn-primary">Añadir foto</button>
-            </form>
-            <!-- Formulario de Novedades (Simplificado sin imágenes) -->
-            <form id="admin-news-form" class="stack-form admin-subform">
-              <div class="form-group">
-                <label>Título del anuncio</label>
-                <input type="text" id="news-title" required placeholder="Ej: Nuevo horario de clases" />
-              </div>
-              <div class="form-group">
-                <label>Descripción / Mensaje</label>
-                <textarea id="news-desc" rows="3" required placeholder="Escribe el aviso aquí..."></textarea>
-              </div>
-              <button type="submit" class="btn btn-primary">Publicar en el tablón</button>
-            </form>
-            <div id="admin-gallery-news" class="admin-list"></div>
+            <details class="admin-collapsible">
+              <summary><h3>Galería y novedades</h3></summary>
+              <p class="admin-help">Publica fotos y avisos para mantener actualizada la información del centro.</p>
+              <form id="admin-gallery-form" class="stack-form">
+                <div class="form-group"><label>Foto de galería (URL o archivo)</label>
+                  <input type="file" id="gallery-file" accept="image/jpeg, image/png, image/webp" />
+                <div class="form-group"><label>Texto de la foto</label><input type="text" id="gallery-caption" required />
+                </div>
+                <button type="submit" class="btn btn-primary">Añadir foto</button>
+              </form>
+              <!-- Formulario de Novedades (Simplificado sin imágenes) -->
+              <form id="admin-news-form" class="stack-form admin-subform">
+                <div class="form-group">
+                  <label>Título del anuncio</label>
+                  <input type="text" id="news-title" required placeholder="Ej: Nuevo horario de clases" />
+                </div>
+                <div class="form-group">
+                  <label>Descripción / Mensaje</label>
+                  <textarea id="news-desc" rows="3" required placeholder="Escribe el aviso aquí..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Publicar en el tablón</button>
+              </form>
+              <div id="admin-gallery-news" class="admin-list"></div>
+            </details>
           </div>
 
           <div id="admin-images-section" class="admin-section admin-editor-section">
-            <h3>Gestor de imágenes</h3>
-            <p class="admin-help">Sube o reemplaza imágenes (.jpg, .png, .webp) de cualquier sección. Se guardan
-              optimizadas en Firebase Storage y su URL queda asociada al elemento correspondiente.</p>
-            <div class="form-group">
-              <label>Selecciona el elemento a actualizar</label>
-              <select id="image-manager-target" class="form-control">
-                <option value="">Cargando elementos...</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Nueva imagen (.jpg / .png / .webp · máx. 5 MB)</label>
-              <input type="file" id="image-manager-file" accept="image/jpeg,image/png,image/webp" />
-              <div class="upload-progress hidden" id="image-manager-progress"><span></span></div>
-            </div>
-            <button type="button" class="btn btn-primary" id="image-manager-upload-btn">Subir y reemplazar
-              imagen</button>
-            <div id="image-manager-grid" class="image-manager-grid"></div>
+            <details class="admin-collapsible">
+              <summary><h3>Gestor de imágenes</h3></summary>
+              <p class="admin-help">Sube o reemplaza imágenes (.jpg, .png, .webp) de cualquier sección. Se guardan
+                optimizadas en Firebase Storage y su URL queda asociada al elemento correspondiente.</p>
+              <div class="form-group">
+                <label>Selecciona el elemento a actualizar</label>
+                <select id="image-manager-target" class="form-control">
+                  <option value="">Cargando elementos...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Nueva imagen (.jpg / .png / .webp · máx. 5 MB)</label>
+                <input type="file" id="image-manager-file" accept="image/jpeg,image/png,image/webp" />
+                <div class="upload-progress hidden" id="image-manager-progress"><span></span></div>
+              </div>
+              <button type="button" class="btn btn-primary" id="image-manager-upload-btn">Subir y reemplazar
+                imagen</button>
+              <div id="image-manager-grid" class="image-manager-grid"></div>
+            </details>
           </div>
 
           <!-- FORMULARIO DE BONOS (Sustituye la parte cortada o añádelo en la pestaña admin) -->
           <div id="admin-services-section" class="admin-section admin-editor-section">
-            <h3>Gestionar Bonos y Tarifas</h3>
-            <p class="admin-help">Crea bonos generales o vincúlalos a clases concretas.</p>
-            <form id="admin-service-form" class="stack-form">
-              <div class="form-group"><label>Nombre</label><input type="text" id="service-name" required /></div>
-              <div class="form-group"><label>Tipo (Ej. Bono, Pack)</label><input type="text" id="service-type"
-                  required /></div>
-              <div class="form-group"><label>Precio (€)</label><input type="number" id="service-price" step="0.01"
-                  required /></div>
+            <details class="admin-collapsible" open>
+              <summary><h3>Gestionar Bonos y Tarifas</h3></summary>
+              <p class="admin-help">Crea bonos generales o vincúlalos a clases concretas.</p>
+              <form id="admin-service-form" class="stack-form">
+                <div class="form-group"><label>Nombre</label><input type="text" id="service-name" required /></div>
+                <div class="form-group"><label>Tipo (Ej. Bono, Pack)</label><input type="text" id="service-type"
+                    required /></div>
+                <div class="form-group"><label>Precio (€)</label><input type="number" id="service-price" step="0.01"
+                    required /></div>
 
-              <!-- NUEVO: DESPLEGABLE DE CLASES VINCULADAS -->
-              <div class="form-group">
-                <label>Clase Vinculada (Opcional)</label>
-                <select id="service-linked-activity" class="form-control">
-                  <option value="">Todas las clases (Bono General)</option>
-                  <!-- Se rellena con JS -->
-                </select>
-                <small>Si eliges una clase, el bono solo descontará sesiones para esa actividad específica.</small>
-              </div>
+                <!-- NUEVO: DESPLEGABLE DE CLASES VINCULADAS -->
+                <div class="form-group">
+                  <label>Clase Vinculada (Opcional)</label>
+                  <select id="service-linked-activity" class="form-control">
+                    <option value="">Todas las clases (Bono General)</option>
+                    <!-- Se rellena con JS -->
+                  </select>
+                  <small>Si eliges una clase, el bono solo descontará sesiones para esa actividad específica.</small>
+                </div>
 
-              <div class="form-group">
-                <label>Tipo de facturación</label>
-                <select id="service-billing-type" class="form-control">
-                  <option value="sessions">Por sesiones</option>
-                  <option value="time">Por tiempo (ilimitado)</option>
-                </select>
-              </div>
-              <div class="form-group" id="service-sessions-field"><label>Número de sesiones</label><input type="number"
-                  id="service-sessions" value="10" /></div>
-              <div class="form-group hidden" id="service-days-field"><label>Duración (días)</label><input type="number"
-                  id="service-duration-days" value="30" /></div>
-              <button type="submit" class="btn btn-primary">Crear bono</button>
-            </form>
-            <div id="admin-services" class="admin-list"></div>
+                <div class="form-group">
+                  <label>Tipo de facturación</label>
+                  <select id="service-billing-type" class="form-control">
+                    <option value="sessions">Por sesiones</option>
+                    <option value="time">Por tiempo (ilimitado)</option>
+                  </select>
+                </div>
+                <div class="form-group" id="service-sessions-field"><label>Número de sesiones</label><input type="number"
+                    id="service-sessions" value="10" /></div>
+                <div class="form-group hidden" id="service-days-field"><label>Duración (días)</label><input type="number"
+                    id="service-duration-days" value="30" /></div>
+                <button type="submit" class="btn btn-primary">Crear bono</button>
+              </form>
+              <div id="admin-services" class="admin-list"></div>
+            </details>
           </div>
 
         </div> <!-- Cierre admin-panel -->
       </div> <!-- Cierre tab-admin -->
+    </section>
+
+    <!-- VISTA PREMIUM (Tablón de anuncios exclusivo, solo contenido Premium) -->
+    <section id="view-premium" class="view premium-view">
+      <div class="premium-shell">
+        <header class="premium-hero">
+          <button type="button" class="premium-back-btn" id="premium-back-btn" aria-label="Volver a inicio">← Volver</button>
+          <span class="premium-hero-pill">★ Zona exclusiva</span>
+          <h1 class="premium-hero-title">Tablón Premium</h1>
+          <p class="premium-hero-sub">Contenido exclusivo reservado para clientes Premium de MIFIT.</p>
+          <span class="premium-hero-line" aria-hidden="true"></span>
+        </header>
+        <div id="premium-board" class="premium-board"></div>
+      </div>
     </section>
 
     <section id="view-perfil" class="view">
@@ -506,6 +613,12 @@
           <div id="profile-recommendation" class="profile-recommendation"></div>
         </form>
         <div id="profile-content" class="profile-card-wrap"></div>
+        <div id="profile-premium-panel" class="profile-premium-panel hidden">
+          <div class="profile-card premium-zone-card">
+            <h3 class="premium-zone-title"></h3>
+            <div id="premium-zone-body" class="premium-zone-body"></div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -586,6 +699,115 @@
     </div>
   </div>
 
+  <!-- MODAL DE EDICIÓN DE ACTIVIDADES -->
+  <div id="edit-activity-modal" class="modal hidden">
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="close-edit-activity-modal" aria-label="Cerrar modal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <h2>Editar Actividad</h2>
+      <form id="edit-activity-form" class="stack-form">
+        <input type="hidden" id="edit-activity-id" />
+        <div class="form-group">
+          <label>Actividad</label>
+          <input type="text" id="edit-activity-title" required />
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="edit-activity-date" required />
+        </div>
+        <div class="form-group">
+          <label>Hora</label>
+          <input type="time" id="edit-activity-time" required />
+        </div>
+        <div class="form-group">
+          <label>Entrenador</label>
+          <input type="text" id="edit-activity-coach" required />
+        </div>
+        <div class="form-group">
+          <label>Duración (minutos)</label>
+          <input type="number" id="edit-activity-duration" min="1" value="45" required />
+        </div>
+        <div class="form-group">
+          <label>Plazas</label>
+          <input type="number" id="edit-activity-capacity" min="1" value="12" required />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <input type="text" id="edit-activity-description" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDICIÓN DE SERVICIOS -->
+  <div id="edit-service-modal" class="modal hidden">
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="close-edit-service-modal" aria-label="Cerrar modal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <h2>Editar Servicio</h2>
+      <form id="edit-service-form" class="stack-form">
+        <input type="hidden" id="edit-service-id" />
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="edit-service-name" required />
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <input type="text" id="edit-service-type" required />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="edit-service-description" rows="2" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDICIÓN DE USUARIOS -->
+  <div id="edit-user-modal" class="modal hidden">
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="close-edit-user-modal" aria-label="Cerrar modal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <h2>Editar Usuario</h2>
+      <form id="edit-user-form" class="stack-form">
+        <input type="hidden" id="edit-user-id" />
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="edit-user-name" required />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="edit-user-email" required />
+        </div>
+        <div class="form-group">
+          <label>Rol</label>
+          <select id="edit-user-role" class="form-control">
+            <option value="cliente">Cliente</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL DE REGISTRO -->
   <div id="register-modal" class="modal hidden">
     <div class="modal-content">
@@ -660,4 +882,4 @@
   <script src="app.js"></script>
 </body>
 
-</html>
+</html>

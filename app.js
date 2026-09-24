@@ -147,6 +147,9 @@ const mfitData = {
     { id: 1, title: 'Horario ampliado', date: '15 Oct 2026', desc: 'Nuevas sesiones matinales', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80', active: true },
     { id: 2, title: 'Taller de movilidad', date: '28 Oct 2026', desc: 'Taller gratuito para socios activos.', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80', active: true }
   ],
+  premium: [
+    { id: 1, type: 'Anuncio', title: '¡Bienvenido a la Zona Premium!', content: 'Desde aquí podrás acceder a recursos, rutinas y anuncios exclusivos reservados solo para clientes Premium de MIFIT.', date: '2026-10-01' }
+  ],
   consultas: [
     { id: 1, nombre: 'María López', email: 'maria@test.com', mensaje: '¿Hay plazas para entrenamiento personal?', fecha: '2026-10-24 10:30', estado: 'nueva' }
   ]
@@ -330,6 +333,261 @@ function getCurrentUser() {
   return state.users.find(user => user.id === state.currentUserId) || null;
 }
 
+/* ==========================================================
+   CLIENTE PREMIUM
+   Un cliente es Premium si la marca isPremium está activa.
+   Los administradores siempre tienen acceso a la Zona Premium.
+   ========================================================== */
+function isUserPremium(user) {
+  if (!user) return false;
+  return user.role === 'admin' || !!user.isPremium;
+}
+
+function premiumBadgeHtml() {
+  return `<span class="premium-badge"><span class="premium-badge-star">★</span> Premium</span>`;
+}
+
+/* ¿Puede este usuario ver esta publicación Premium? */
+function canSeePremiumPost(item, user) {
+  if (!item) return false;
+  if (!item.audience || item.audience === 'all') return true;
+  if (user && user.role === 'admin') return true;
+  return !!user && String(item.audience) === String(user.id);
+}
+
+/* ==========================================================
+    TABLÓN PREMIUM (vista exclusiva oscura)
+    ========================================================== */
+function renderPremiumBoard() {
+  const board = document.getElementById('premium-board');
+  if (!board) return;
+  const user = getCurrentUser();
+  const premium = isUserPremium(user);
+  board.classList.toggle('is-admin-board', !!user && user.role === 'admin');
+
+  if (!user) {
+    board.innerHTML = `
+      <div class="premium-gate">
+        <span class="premium-gate-star" aria-hidden="true">★</span>
+        <h2>Acceso exclusivo</h2>
+        <p>Inicia sesión con tu cuenta Premium de MIFIT para ver el tablón exclusivo.</p>
+        <button type="button" class="premium-btn-glow" id="premium-gate-login">Iniciar sesión</button>
+      </div>`;
+    document.getElementById('premium-gate-login')?.addEventListener('click', openLoginModal);
+    return;
+  }
+
+  if (!premium) {
+    board.innerHTML = `
+      <div class="premium-gate premium-gate-locked">
+        <span class="premium-gate-star" aria-hidden="true">★</span>
+        <h2>Todavía no eres Premium</h2>
+        <p>El tablón Premium está reservado a clientes Premium: rutinas exclusivas, anuncios anticipados y recursos VIP.</p>
+        <ul class="premium-perks">
+          <li>Contenido y planes exclusivos</li>
+          <li>Anuncios antes que nadie</li>
+          <li>Recursos y seguimiento VIP</li>
+        </ul>
+        <small class="premium-gate-note">¿Quieres ser Premium? Consulta en recepción o escríbenos por WhatsApp y activaremos tu cuenta.</small>
+      </div>`;
+    return;
+  }
+
+  const posts = (mfitData.premium || [])
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .filter(item => canSeePremiumPost(item, user));
+
+  if (!posts.length) {
+    board.innerHTML = '<div class="premium-empty-board">Aún no hay contenido Premium publicado. Vuelve pronto <span aria-hidden="true">★</span></div>';
+    return;
+  }
+
+  board.innerHTML = posts.map(item => {
+    const specific = item.audience && item.audience !== 'all'
+      ? state.users.find(u => String(u.id) === String(item.audience))
+      : null;
+    return `
+      <article class="premium-card" data-premium-id="${item.id}">
+        <div class="premium-card-head">
+          <span class="premium-card-type">${item.type || 'Publicación'}</span>
+          <small class="premium-card-date">${item.date ? new Date(item.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</small>
+        </div>
+        <h3 class="premium-card-title">${item.title}</h3>
+        ${item.imageUrl ? `<img class="premium-card-image" src="${item.imageUrl}" alt="${item.title}" loading="lazy">` : ''}
+        <p class="premium-card-body">${item.content}</p>
+        ${specific ? `<div class="premium-card-recipient">★ Publicación privada para <strong>${specific.name}</strong></div>` : ''}
+      </article>`;
+  }).join('');
+}
+
+function openPremiumView() {
+  document.querySelectorAll('.view').forEach(view => view.classList.remove('active-view'));
+  document.getElementById('view-premium')?.classList.add('active-view');
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  renderPremiumBoard();
+}
+
+function closePremiumView() {
+  document.querySelectorAll('.view').forEach(view => view.classList.remove('active-view'));
+  const homeNav = document.querySelector('[data-view="view-home"]');
+  document.getElementById('view-home')?.classList.add('active-view');
+  if (homeNav) homeNav.classList.add('active');
+}
+
+/* ==========================================================
+   GESTIÓN DE CLIENTES: BAJA TEMPORAL vs. ELIMINAR DEFINITIVO
+   ----------------------------------------------------------
+   - Baja: status 'inactive' + isBaja true. Conserva toda la ficha.
+   - Alta: vuelve a status 'active'. Pensado para cuando regresa.
+   - Eliminar: borra el registro por completo (Firestore + estado).
+   ========================================================== */
+function isUserBaja(user) {
+  return !!user && (user.isBaja === true || user.status === 'inactive');
+}
+
+function userStatusPillHtml(user) {
+  return isUserBaja(user)
+    ? '<span class="status-pill is-baja">De baja</span>'
+    : '<span class="status-pill is-active">Activo</span>';
+}
+
+function userBajaSinceText(user) {
+  if (!isUserBaja(user) || !user.bajaDate) return '';
+  const date = new Date(user.bajaDate);
+  return isNaN(date.getTime()) ? '' : `De baja desde el ${date.toLocaleDateString('es-ES')}`;
+}
+
+function userStatusActionsHtml(user) {
+  const baja = isUserBaja(user);
+  const bajaButton = user.role === 'cliente'
+    ? (baja
+      ? `<button type="button" class="btn btn-alta btn-sm" data-toggle-baja="${user.id}" title="Reactivar a este cliente">Dar de alta</button>`
+      : `<button type="button" class="btn btn-baja btn-sm" data-toggle-baja="${user.id}" title="Pausar al cliente sin borrar sus datos">Dar de baja</button>`)
+    : '';
+  const deleteButton = `<button type="button" class="btn btn-danger btn-sm" data-delete-user="${user.id}" title="Borrar al cliente definitivamente">Eliminar cliente</button>`;
+  return bajaButton + deleteButton;
+}
+
+async function toggleUserBaja(userId) {
+  if (!isAdmin()) return;
+  const user = state.users.find(item => String(item.id) === String(userId));
+  if (!user) return;
+  if (String(user.id) === String(state.currentUserId)) {
+    toastWarning('No puedes dar de baja la cuenta con la que estás conectado.');
+    return;
+  }
+
+  const goingToBaja = !isUserBaja(user);
+  if (goingToBaja) {
+    const confirmed = await showConfirm(
+      `¿Dar de baja a ${user.name}? No podrá iniciar sesión ni reservar mientras esté de baja. Conservará todos sus datos y podrás darle de alta cuando vuelva.`,
+      { title: 'Dar de baja', icon: '⏸️', confirmText: 'Dar de baja' }
+    );
+    if (!confirmed) return;
+  }
+
+  user.isBaja = goingToBaja;
+  user.status = goingToBaja ? 'inactive' : 'active';
+  user.bajaDate = goingToBaja ? new Date().toISOString() : null;
+  user.altaDate = goingToBaja ? (user.altaDate || null) : new Date().toISOString();
+
+  let accountSynced = true;
+  try {
+    await db.collection('users').doc(String(user.id)).set({
+      isBaja: user.isBaja,
+      status: user.status,
+      bajaDate: user.bajaDate,
+      altaDate: user.altaDate,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    accountSynced = false;
+    console.error('No se pudo sincronizar el estado de baja:', error);
+  }
+  await saveState();
+  renderAdminPanels();
+  toastSuccess(
+    goingToBaja ? `${user.name} está de baja: no podrá iniciar sesión. Sus datos se han conservado.` : `${user.name} vuelve a estar de alta y ya puede entrar.`,
+    { title: goingToBaja ? 'Cliente de baja' : 'Cliente de alta' }
+  );
+  if (!accountSynced) {
+    toastWarning('No se pudo actualizar la cuenta del cliente en Firestore, así que el bloqueo de acceso puede no aplicarse. Revisa las reglas de seguridad.', { title: 'Sincronización incompleta' });
+  }
+}
+
+async function deleteUserPermanently(userId) {
+  if (!isAdmin()) return;
+  const id = String(userId);
+  const user = state.users.find(item => String(item.id) === id);
+  if (!user) return;
+  if (id === String(state.currentUserId)) {
+    toastWarning('No puedes eliminar la cuenta con la que estás conectado.');
+    return;
+  }
+
+  const confirmed = await showConfirm(
+    `¿Eliminar definitivamente a ${user.name}? Se borrarán su ficha, medidas, bonos y reservas de la base de datos y no se podrá recuperar. Si solo deja de venir un tiempo, usa "Dar de baja".`,
+    { title: 'Eliminar cliente', icon: '🗑️', confirmText: 'Eliminar definitivamente' }
+  );
+  if (!confirmed) return;
+
+  // 1) Registro del cliente en Firestore (colección users)
+  let firestoreDeleted = true;
+  try {
+    await db.collection('users').doc(id).delete();
+  } catch (error) {
+    firestoreDeleted = false;
+    console.error('No se pudo borrar el documento del cliente en Firestore:', error);
+  }
+
+  // 2) Todo lo que cuelga del cliente en el estado compartido
+  state.users = state.users.filter(item => String(item.id) !== id);
+  state.purchases = (state.purchases || []).filter(item => String(item.userId) !== id);
+  state.purchaseHistory = (state.purchaseHistory || []).filter(item => String(item.userId) !== id);
+  state.reservations = (state.reservations || []).filter(item => String(item.userId) !== id);
+  state.reservationHistory = (state.reservationHistory || []).filter(item => String(item.userId) !== id);
+  (state.activities || []).forEach(activity => {
+    if (!Array.isArray(activity.reservations)) return;
+    const before = activity.reservations.length;
+    activity.reservations = activity.reservations.filter(item => String(item.userId) !== id);
+    activity.booked = Math.max(0, (Number(activity.booked) || 0) - (before - activity.reservations.length));
+  });
+
+  // 3) Lista de cuentas bloqueadas (la cuenta de Authentication sigue existiendo, pero ya no puede entrar)
+  state.deletedUserIds = state.deletedUserIds || [];
+  state.deletedUserEmails = state.deletedUserEmails || [];
+  if (typeof user.id === 'string') state.deletedUserIds.push(user.id);
+  if (user.email) state.deletedUserEmails.push(user.email.toLowerCase());
+
+  await saveState();
+  renderAll();
+  if (firestoreDeleted) {
+    toastSuccess(`${user.name} se ha eliminado por completo de MIFIT.`, { title: 'Cliente eliminado' });
+  } else {
+    toastWarning(`${user.name} se ha quitado de la app, pero no se pudo borrar su documento en Firestore. Revisa las reglas de seguridad.`, { title: 'Borrado parcial' });
+  }
+}
+
+async function toggleUserPremium(userId) {
+  if (!isAdmin()) return;
+  const user = state.users.find(item => String(item.id) === String(userId));
+  if (!user) return;
+  user.isPremium = !user.isPremium;
+  try {
+    await db.collection('users').doc(String(user.id)).set({ isPremium: user.isPremium, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  } catch (error) {
+    console.error('No se pudo sincronizar el estado Premium:', error);
+  }
+  await saveState();
+  renderAdminPanels();
+  renderAdminContent();
+  renderProfile();
+  populatePremiumClientSelect();
+  renderPremiumBoard();
+  toastSuccess(user.isPremium ? `${user.name} ahora es cliente Premium ★` : `${user.name} ya no es Premium.`, { title: 'Cliente Premium' });
+}
+
 function formatPrice(value) {
   return `${Number(value).toFixed(2)}€`;
 }
@@ -451,9 +709,9 @@ function renderCalendarReminders() {
     state.purchases.filter(item => item.userId === user.id).forEach(purchase => {
       const status = getPurchaseStatus(purchase);
       if (status === 'Próximo a caducar') {
-        reminders.push({ type: 'warning', icon: '⏳', title: 'Tu bono caduca pronto', text: `${purchase.serviceName}: ${getPurchaseAvailability(purchase)}.` });
+        reminders.push({ type: 'warning', icon: '⏳', title: 'Tu bono caduca pronto ', text: `${purchase.serviceName}: ${getPurchaseAvailability(purchase)}.` });
       } else if (status === 'Agotado') {
-        reminders.push({ type: 'warning', icon: '🎫', title: 'Bono agotado', text: `${purchase.serviceName} no tiene sesiones disponibles.` });
+        reminders.push({ type: 'warning', icon: '🎫', title: 'Bono agotado ', text: `${purchase.serviceName} no tiene sesiones disponibles.` });
       }
     });
 
@@ -465,7 +723,7 @@ function renderCalendarReminders() {
       .sort((a, b) => new Date(a.activity.date) - new Date(b.activity.date))[0];
     if (upcoming) {
       const date = new Date(upcoming.activity.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-      reminders.push({ type: 'info', icon: '📅', title: 'Tu próxima clase', text: `${upcoming.activity.title} · ${date} a las ${upcoming.activity.time}.` });
+      reminders.push({ type: 'info', icon: '📅', title: 'Tu próxima clase ', text: `${upcoming.activity.title} · ${date} a las ${upcoming.activity.time}.` });
     }
   }
 
@@ -709,6 +967,10 @@ function reserveActivity(activityId) {
     openLoginModal();
     return;
   }
+  if (isUserBaja(currentUser) && currentUser.role !== 'admin') {
+    toastWarning('Tu cuenta está de baja y no puede reservar clases.', { title: 'Cuenta de baja' });
+    return;
+  }
 
   const activity = state.activities.find(item => String(item.id) === String(activityId));
   if (!activity) return;
@@ -862,7 +1124,7 @@ function renderAttendancePanel() {
     return;
   }
   const activities = state.activities.filter(item => item.reservations?.length);
-  container.innerHTML = activities.length ? activities.map(activity => `<details class="attendance-group" data-activity-id="${activity.id}"><summary><strong>${activity.title}</strong><small>${new Date(activity.date).toLocaleDateString('es-ES')} · ${activity.time} · ${activity.booked}/${activity.capacity} plazas</small></summary><div class="attendance-list">${activity.reservations.map(item => { const reservation = state.reservations.find(entry => String(entry.activityId) === String(activity.id) && String(entry.userId) === String(item.userId)); const user = state.users.find(entry => String(entry.id) === String(item.userId)); if (!reservation || !user) return ''; return `<label class="attendance-row"><span><strong>${user.name}</strong><small>${user.email}</small></span><span><input type="checkbox" data-attendance-activity="${activity.id}" data-attendance-user="${user.id}" ${reservation.attendedAt ? 'checked' : ''} /> Asistió</span></label>`; }).join('')}</div></details>`).join('') : '<div class="empty-state">Todavía no hay reservas para confirmar.</div>';
+  container.innerHTML = activities.length ? activities.map(activity => `<details class="attendance-group" data-activity-id="${activity.id}"><summary><strong>${activity.title}</strong><small>${new Date(activity.date).toLocaleDateString('es-ES')} · ${activity.time} · ${activity.booked}/${activity.capacity} plazas</small></summary><div class="attendance-list">${activity.reservations.map(item => { const reservation = state.reservations.find(entry => String(entry.activityId) === String(activity.id) && String(entry.userId) === String(item.userId)); const user = state.users.find(entry => String(entry.id) === String(item.userId)); if (!reservation || !user) return ''; return `<label class="attendance-row"><span><strong>${user.name}</strong> - <small>${user.email}</small></span><span><input type="checkbox" data-attendance-activity="${activity.id}" data-attendance-user="${user.id}" ${reservation.attendedAt ? 'checked' : ''} /> Asistió</span></label>`; }).join('')}</div></details>`).join('') : '<div class="empty-state">Todavía no hay reservas para confirmar.</div>';
   container.querySelectorAll('[data-attendance-activity]').forEach(input => input.addEventListener('change', () => toggleAttendance(input.dataset.attendanceActivity, input.dataset.attendanceUser, input.checked)));
 }
 
@@ -980,12 +1242,25 @@ async function syncAuthenticatedUser(firebaseUser) {
   // Asignación de rol sin que 'adminEmails' provoque un fallo
   const role = profile.role || (adminList.includes(userEmail) ? 'admin' : existing?.role || 'cliente');
 
+  // Cliente de baja: no puede entrar hasta que el administrador lo dé de alta
+  const accountInBaja = typeof profile.isBaja === 'boolean' ? profile.isBaja : isUserBaja(existing);
+  if (accountInBaja && role !== 'admin') {
+    await auth.signOut();
+    toastWarning('Tu cuenta está de baja. Contacta con MIFIT para volver a darte de alta.', { title: 'Acceso no disponible' });
+    return;
+  }
+
   if (existing) {
     existing.id = firebaseUser.uid;
     existing.name = profile.name || firebaseUser.displayName || existing.name;
     existing.role = role;
     existing.profile = profile.profile || existing.profile || {};
     existing.profileHistory = profile.profileHistory || existing.profileHistory || [];
+    // Preservar el estado Premium: Firestore manda si existe; si no, se mantiene el valor local
+    existing.isPremium = typeof profile.isPremium === 'boolean' ? profile.isPremium : (existing.isPremium === true);
+    // Estado de baja temporal: Firestore manda si existe; si no, se mantiene el valor local
+    existing.isBaja = typeof profile.isBaja === 'boolean' ? profile.isBaja : isUserBaja(existing);
+    existing.status = existing.isBaja ? 'inactive' : 'active';
     state.currentUserId = firebaseUser.uid;
   } else {
     state.users.push({
@@ -994,7 +1269,10 @@ async function syncAuthenticatedUser(firebaseUser) {
       email: firebaseUser.email,
       role,
       profile: profile.profile || {},
-      profileHistory: profile.profileHistory || []
+      profileHistory: profile.profileHistory || [],
+      isPremium: profile.isPremium === true,
+      isBaja: profile.isBaja === true,
+      status: profile.isBaja === true ? 'inactive' : 'active'
     });
     state.currentUserId = firebaseUser.uid;
   }
@@ -1006,6 +1284,9 @@ async function syncAuthenticatedUser(firebaseUser) {
     name: getCurrentUser()?.name || profile.name || firebaseUser.displayName || 'Usuario',
     email: firebaseUser.email,
     role,
+    isPremium: getCurrentUser()?.isPremium === true,
+    isBaja: isUserBaja(getCurrentUser()),
+    status: isUserBaja(getCurrentUser()) ? 'inactive' : 'active',
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
@@ -1323,14 +1604,58 @@ function renderProfile() {
 
   const purchases = state.purchases.filter(item => String(item.userId) === String(user.id));
   const metrics = getUserMetrics(user);
+  const premium = isUserPremium(user);
+  const premiumPosts = (mfitData.premium || [])
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .filter(item => canSeePremiumPost(item, user));
   renderProfileTracking(user);
 
+  const premiumPostsHtml = premium ? (
+    premiumPosts.length ? premiumPosts.map(item => `
+      <article class="premium-post">
+        <div class="premium-post-head">
+          <span class="premium-post-type">${item.type || 'Publicación'}</span>
+          <small>${item.date ? new Date(item.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</small>
+        </div>
+        <h4>${item.title}</h4>
+        ${item.imageUrl ? `<img class="premium-post-image" src="${item.imageUrl}" alt="${item.title}" loading="lazy">` : ''}
+        <p>${item.content}</p>
+      </article>
+    `).join('') : '<div class="empty-state">Aún no hay contenido Premium publicado. Vuelve pronto ★</div>'
+  ) : `
+    <div class="premium-upgrade-banner">
+      <div class="premium-upgrade-glow" aria-hidden="true"></div>
+      <span class="premium-upgrade-crown">★</span>
+      <h4>Desbloquea tu Zona Premium</h4>
+      <p>Accede a rutinas exclusivas, anuncios anticipados y recursos reservados solo para clientes Premium de MIFIT.</p>
+      <ul class="premium-perks">
+        <li>Contenido y planes exclusivos</li>
+        <li>Anuncios antes que nadie</li>
+        <li>Recursos y seguimiento VIP</li>
+      </ul>
+      <small class="premium-upgrade-note">¿Quieres ser Premium? Consulta en recepción o escríbenos por WhatsApp y activaremos tu cuenta.</small>
+    </div>
+  `;
+
+  container.classList.toggle('profile-night-mode', false);
+  renderPremiumBoard();
   container.innerHTML = `
-    <div class="profile-card">
+    <div class="profile-toggle-row">
+      <div class="profile-toggle-text">
+        <strong id="profile-toggle-title">Mi perfil</strong>
+        <small id="profile-toggle-subtitle">Tu actividad, servicios y reservas</small>
+      </div>
+      <button type="button" class="profile-tab-btn premium-toggle-btn" data-premium-toggle="false" aria-expanded="false">★ Premium</button>
+    </div>
+
+    <div class="profile-tab-panel" data-profile-panel="perfil">
+
+    <div class="profile-card${premium ? ' premium-profile-card' : ''}">
       <div class="profile-header">
         <div class="avatar">${user.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}</div>
         <div class="profile-identity">
-          <h3>${user.name}</h3>
+          <h3>${user.name}${premium ? premiumBadgeHtml() : ''}</h3>
           <p>${user.role === 'admin' ? 'Administrador' : 'Cliente'} · ${user.email}</p>
         </div>
       </div>
@@ -1391,7 +1716,36 @@ function renderProfile() {
         `).join('') : '<div class="empty-state">Todavía no has reservado actividades.</div>'}
       </div>
     </div>
+
+    </div>
+
+    <div class="profile-tab-panel hidden" data-profile-panel="premium" id="profile-premium-panel">
+      <div class="profile-card premium-zone-card">
+        <h3 class="premium-zone-title">${premium ? '<span class="premium-badge"><span class="premium-badge-star">★</span> Zona Premium</span>' : 'Zona Premium'}</h3>
+        ${premiumPostsHtml}
+      </div>
+    </div>
   `;
+
+  const premiumToggle = container.querySelector('[data-premium-toggle]');
+  if (premiumToggle) {
+    premiumToggle.addEventListener('click', () => {
+      const panel = container.querySelector('#profile-premium-panel');
+      const profilePanel = container.querySelector('[data-profile-panel="perfil"]');
+      const title = container.querySelector('#profile-toggle-title');
+      const subtitle = container.querySelector('#profile-toggle-subtitle');
+      if (!panel) return;
+      const willShow = panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', !willShow);
+      if (profilePanel) profilePanel.classList.toggle('hidden', willShow);
+      premiumToggle.classList.toggle('active', willShow);
+      premiumToggle.setAttribute('aria-expanded', String(willShow));
+      premiumToggle.setAttribute('data-premium-toggle', String(willShow));
+      if (title) title.textContent = willShow ? 'Zona Premium' : 'Mi perfil';
+      if (subtitle) subtitle.textContent = willShow ? 'Contenido exclusivo para clientes Premium' : 'Tu actividad, servicios y reservas';
+      container.classList.toggle('profile-night-mode', willShow);
+    });
+  }
 
   container.querySelectorAll('[data-buy-service]').forEach(button => {
     button.addEventListener('click', () => requestPurchase(Number(button.dataset.buyService)));
@@ -1408,6 +1762,10 @@ function requestPurchase(serviceId) {
   const user = getCurrentUser();
   if (!user) {
     openLoginModal();
+    return;
+  }
+  if (isUserBaja(user) && user.role !== 'admin') {
+    toastWarning('Tu cuenta está de baja y no puede solicitar bonos.', { title: 'Cuenta de baja' });
     return;
   }
 
@@ -1468,9 +1826,113 @@ async function persistContent() {
   renderAdminPanels();
 }
 
+/* ==========================================================
+   CONTENIDO PREMIUM (ADMIN)
+   Publicaciones, anuncios o recursos exclusivos para clientes Premium.
+   ========================================================== */
+function renderAdminPremium() {
+  const container = document.getElementById('admin-premium-content');
+  if (!container) return;
+  const premium = mfitData.premium || [];
+  container.innerHTML = premium.length ? premium.map(item => {
+    const specific = item.audience && item.audience !== 'all'
+      ? state.users.find(u => String(u.id) === String(item.audience))
+      : null;
+    const recipient = specific ? `<span class="premium-admin-recipient">★ Para: ${specific.name}</span>` : '<span class="premium-admin-recipient">Todos los Premium</span>';
+    return `
+    <div class="admin-item premium-admin-item">
+      <strong>${item.title}</strong>
+      <small>${item.type || 'Publicación'} · ${item.date ? new Date(item.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Sin fecha'} · ${recipient}</small>
+      <p class="premium-admin-preview">${item.content}</p>
+      <div class="admin-item-actions">
+        <button type="button" class="icon-delete" data-delete-premium="${item.id}" aria-label="Eliminar publicación Premium" title="Eliminar publicación">×</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state">Todavía no hay contenido Premium publicado.</div>';
+
+  container.querySelectorAll('[data-delete-premium]').forEach(button => button.addEventListener('click', async () => {
+    const confirmed = await showConfirm('¿Eliminar esta publicación Premium? Los clientes dejarán de verla.', { title: 'Eliminar contenido Premium', icon: '🗑️', confirmText: 'Eliminar' });
+    if (!confirmed) return;
+    mfitData.premium = (mfitData.premium || []).filter(item => String(item.id) !== button.dataset.deletePremium);
+    await persistContent();
+    renderProfile();
+    toastInfo('Contenido Premium eliminado.');
+  }));
+}
+
+/* Rellena el desplegable de clientes Premium del formulario admin */
+function populatePremiumClientSelect() {
+  const sel = document.getElementById('premium-client');
+  if (!sel) return;
+  const clients = state.users.filter(item => item.role !== 'admin' && item.isPremium);
+  sel.innerHTML = '<option value="">Selecciona un cliente Premium…</option>' +
+    clients.map(client => `<option value="${client.id}">${client.name} · ${client.email}</option>`).join('');
+}
+
+/* Muestra/oculta el selector de cliente según la audiencia elegida */
+function updatePremiumAudienceFields() {
+  const audienceSel = document.getElementById('premium-audience');
+  const group = document.getElementById('premium-client-group');
+  if (!audienceSel || !group) return;
+  const isClient = audienceSel.value === 'client';
+  group.classList.toggle('hidden', !isClient);
+  if (isClient) populatePremiumClientSelect();
+}
+
+async function handleAdminPremiumSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) return;
+  const title = document.getElementById('premium-title').value.trim();
+  const content = document.getElementById('premium-content').value.trim();
+  const type = document.getElementById('premium-type').value;
+  if (!title || !content) return;
+  const form = document.getElementById('admin-premium-form');
+  const imageInput = document.getElementById('premium-image');
+  let imageUrl = null;
+  const file = imageInput && imageInput.files && imageInput.files[0];
+  if (file) {
+    try {
+      imageUrl = await uploadImage(file);
+    } catch (err) {
+      console.error('Error subiendo imagen premium:', err);
+      toastError('No se pudo subir la imagen. Inténtalo de nuevo.');
+      return;
+    }
+  }
+
+  mfitData.premium = mfitData.premium || [];
+  const audienceSel = document.getElementById('premium-audience');
+  const clientSel = document.getElementById('premium-client');
+  const wantsClient = (audienceSel && audienceSel.value) === 'client';
+  if (wantsClient && (!clientSel || !clientSel.value)) {
+    toastWarning('Selecciona el cliente Premium destinatario de esta publicación.');
+    return;
+  }
+  const audience = wantsClient && clientSel ? clientSel.value : 'all';
+  mfitData.premium.unshift({
+    id: Date.now(),
+    type,
+    title,
+    content,
+    imageUrl: imageUrl || null,
+    audience,
+    date: new Date().toISOString().slice(0, 10)
+  });
+  await persistContent();
+  document.getElementById('admin-premium-form').reset();
+  const preview = document.getElementById('premium-image-preview');
+  if (preview) {
+    preview.style.display = 'none';
+    preview.src = '';
+  }
+  renderProfile();
+  toastSuccess('Contenido Premium publicado. Ya está disponible en la Zona Premium de tus clientes ★');
+}
+
 function renderAdminContent() {
   if (!isAdmin()) return;
   renderAttendancePanel();
+  renderAdminPremium();
   const consultasContainer = document.getElementById('admin-consultas');
   if (consultasContainer) {
     const consultas = mfitData.consultas || [];
@@ -1499,13 +1961,13 @@ function renderAdminContent() {
   if (heroInput) heroInput.value = info.heroImage || '';
 
   const activities = document.getElementById('admin-activities');
-  if (activities) activities.innerHTML = state.activities.map(item => `<div class="admin-item"><strong>${item.title}</strong><small>${new Date(item.date).toLocaleDateString('es-ES')} · ${item.time} · ${item.coach}</small><button type="button" class="btn btn-secondary btn-sm" data-delete-activity="${item.id}">Eliminar</button></div>`).join('') || '<div class="empty-state">No hay actividades.</div>';
+  if (activities) activities.innerHTML = state.activities.map(item => `<div class="admin-item"><strong>${item.title}</strong><small>${new Date(item.date).toLocaleDateString('es-ES')} · ${item.time} · ${item.coach}</small><div class="admin-item-actions"><button type="button" class="btn btn-secondary btn-sm" data-edit-activity="${item.id}">Editar</button><button type="button" class="btn btn-secondary btn-sm" data-delete-activity="${item.id}">Eliminar</button></div></div>`).join('') || '<div class="empty-state">No hay actividades.</div>';
 
   const centerServices = document.getElementById('admin-center-services');
-  if (centerServices) centerServices.innerHTML = mfitData.services.map(item => `<div class="admin-item"><strong>${item.name}</strong><small>${item.desc}</small><button type="button" class="btn btn-secondary btn-sm" data-delete-center-service="${item.id}">Eliminar</button></div>`).join('');
+  if (centerServices) centerServices.innerHTML = mfitData.services.map(item => `<div class="admin-item"><strong>${item.name}</strong><small>${item.desc}</small><div class="admin-item-actions"><button type="button" class="btn btn-secondary btn-sm" data-edit-center-service="${item.id}">Editar</button><button type="button" class="btn btn-secondary btn-sm" data-delete-center-service="${item.id}">Eliminar</button></div></div>`).join('');
 
   const team = document.getElementById('admin-team');
-  if (team) team.innerHTML = mfitData.team.map(item => `<div class="admin-item"><strong>${item.name}</strong><small>${item.role} · ${item.spec}</small><button type="button" class="btn btn-secondary btn-sm" data-delete-team="${item.id}">Eliminar</button></div>`).join('');
+  if (team) team.innerHTML = mfitData.team.map(item => `<div class="admin-item"><strong>${item.name}</strong><small>${item.role} · ${item.spec}</small><div class="admin-item-actions"><button type="button" class="btn btn-secondary btn-sm" data-edit-team="${item.id}">Editar</button><button type="button" class="btn btn-secondary btn-sm" data-delete-team="${item.id}">Eliminar</button></div></div>`).join('');
 
   const galleryNews = document.getElementById('admin-gallery-news');
   if (galleryNews) galleryNews.innerHTML = [
@@ -1516,6 +1978,8 @@ function renderAdminContent() {
   const tracking = document.getElementById('admin-client-tracking');
   if (tracking) {
     const clients = state.users.filter(item => item.role === 'cliente');
+    // Recordar qué fichas estaban abiertas para que no se cierren al dar de baja/alta
+    const openClientIds = new Set(Array.from(tracking.querySelectorAll('details.client-file[open]')).map(el => el.dataset.clientId));
     tracking.innerHTML = clients.length ? clients.map(client => {
       const recommendation = calculateProfileRecommendation(client.profile);
       const profile = client.profile || {};
@@ -1527,7 +1991,9 @@ function renderAdminContent() {
       const measurements = Object.entries(measurementLabels).filter(([key]) => profile[key]).map(([key, label]) => `<div class="measurement-card"><span>${label}</span><strong>${profile[key]} <small>cm</small></strong></div>`).join('') || '<span class="client-muted">Sin medidas adicionales</span>';
       const requestedServices = state.purchases.filter(item => item.userId === client.id);
       const servicesText = requestedServices.length ? requestedServices.map(item => `<span class="client-badge">${item.serviceName} · ${item.status}</span>`).join('') : '<span class="client-muted">Ningún bono solicitado</span>';
-      return `<details class="client-file"><summary><span class="client-avatar">${(client.name || 'Cliente').split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}</span><span class="client-summary-main"><strong>${client.name}</strong><small>${client.email}</small></span><span class="client-summary-goal">${profile.goal || 'Sin objetivo'}</span><span class="client-chevron">⌄</span></summary><div class="client-file-body">${profile.weight ? `<div class="client-metrics"><div><span>Peso</span><strong>${profile.weight} <small>kg</small></strong></div><div><span>Altura</span><strong>${profile.height} <small>cm</small></strong></div><div><span>IMC</span><strong>${recommendation?.bmi}</strong></div><div><span>Calorías</span><strong>${recommendation?.calories} <small>kcal</small></strong></div></div><div class="client-block"><h4>Medidas corporales</h4><div class="measurement-grid">${measurements}</div></div>` : '<div class="client-empty">El cliente todavía no ha completado sus medidas.</div>'}<div class="evolution-summary"><div><span>Cómo empezó</span><strong>${initial.weight || '-'} kg · ${initial.waist || '-'} cm cintura</strong></div><div><span>Cómo va avanzando</span><strong>${latest.weight || '-'} kg · ${latest.waist || '-'} cm cintura</strong></div></div><div class="evolution-table-wrap"><table class="evolution-table"><thead><tr><th>Fecha</th><th>Peso</th><th>Cintura</th><th>Cadera</th><th>Objetivo</th></tr></thead><tbody>${progressRows}</tbody></table></div><div class="client-block"><h4>Bonos solicitados</h4><div class="client-badges">${servicesText}</div></div>${profile.notes ? `<div class="client-note"><strong>Notas</strong><span>${profile.notes}</span></div>` : ''}</div></details>`;
+      const clientIsBaja = isUserBaja(client);
+      const clientActionsHtml = `<div class="client-actions">${userStatusActionsHtml(client)}</div>`;
+      return `<details class="client-file${clientIsBaja ? ' is-baja' : ''}" data-client-id="${client.id}"${openClientIds.has(String(client.id)) ? ' open' : ''}><summary><span class="client-avatar">${(client.name || 'Cliente').split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}</span><span class="client-summary-main"><span class="client-name-row"><strong>${client.name}</strong>${clientIsBaja ? userStatusPillHtml(client) : ''}</span><small>${client.email}</small></span><span class="client-summary-goal">${profile.goal || 'Sin objetivo'}</span><span class="client-chevron">⌄</span></summary><div class="client-file-body">${profile.weight ? `<div class="client-metrics"><div><span>Peso</span><strong>${profile.weight} <small>kg</small></strong></div><div><span>Altura</span><strong>${profile.height} <small>cm</small></strong></div><div><span>IMC</span><strong>${recommendation?.bmi}</strong></div><div><span>Calorías</span><strong>${recommendation?.calories} <small>kcal</small></strong></div></div><div class="client-block"><h4>Medidas corporales</h4><div class="measurement-grid">${measurements}</div></div>` : '<div class="client-empty">El cliente todavía no ha completado sus medidas.</div>'}<div class="evolution-summary"><div><span>Cómo empezó</span><strong>${initial.weight || '-'} kg · ${initial.waist || '-'} cm cintura</strong></div><div><span>Cómo va avanzando</span><strong>${latest.weight || '-'} kg · ${latest.waist || '-'} cm cintura</strong></div></div><div class="evolution-table-wrap"><table class="evolution-table"><thead><tr><th>Fecha</th><th>Peso</th><th>Cintura</th><th>Cadera</th><th>Objetivo</th></tr></thead><tbody>${progressRows}</tbody></table></div><div class="client-block"><h4>Bonos solicitados</h4><div class="client-badges">${servicesText}</div></div>${profile.notes ? `<div class="client-note"><strong>Notas</strong><span>${profile.notes}</span></div>` : ''}${clientActionsHtml}</div></details>`;
     }).join('') : '<div class="empty-state">Todavía no hay clientes registrados.</div>';
   }
 
@@ -1537,13 +2003,55 @@ function renderAdminContent() {
     renderCalendar();
     renderSelectedDay();
   }));
+
+  // Event listeners para botones de editar
+  document.querySelectorAll('[data-edit-activity]').forEach(button => button.addEventListener('click', () => {
+    const activity = state.activities.find(item => String(item.id) === button.dataset.editActivity);
+    if (activity) {
+      document.getElementById('edit-activity-id').value = activity.id;
+      document.getElementById('edit-activity-title').value = activity.title;
+      document.getElementById('edit-activity-date').value = new Date(activity.date).toISOString().split('T')[0];
+      document.getElementById('edit-activity-time').value = activity.time;
+      document.getElementById('edit-activity-coach').value = activity.coach;
+      document.getElementById('edit-activity-duration').value = activity.duration;
+      document.getElementById('edit-activity-capacity').value = activity.capacity;
+      document.getElementById('edit-activity-description').value = activity.description;
+      document.getElementById('edit-activity-modal').classList.remove('hidden');
+    }
+  }));
   document.querySelectorAll('[data-delete-center-service]').forEach(button => button.addEventListener('click', () => {
     mfitData.services = mfitData.services.filter(item => String(item.id) !== button.dataset.deleteCenterService);
     persistContent();
   }));
+
+document.querySelectorAll('[data-edit-center-service]').forEach(button => button.addEventListener('click', () => {
+  const service = mfitData.services.find(item => String(item.id) === button.dataset.editCenterService);
+  if (service) {
+    const modal = document.getElementById('edit-service-modal');
+    modal.dataset.entityType = 'center'; // Identifica que es un servicio del centro
+
+    document.getElementById('edit-service-id').value = service.id;
+    document.getElementById('edit-service-name').value = service.name;
+    document.getElementById('edit-service-type').value = service.type || 'Servicio';
+    document.getElementById('edit-service-description').value = service.desc || '';
+    modal.classList.remove('hidden');
+  }
+}));
   document.querySelectorAll('[data-delete-team]').forEach(button => button.addEventListener('click', () => {
     mfitData.team = mfitData.team.filter(item => String(item.id) !== button.dataset.deleteTeam);
     persistContent();
+  }));
+
+  document.querySelectorAll('[data-edit-team]').forEach(button => button.addEventListener('click', () => {
+    const teamMember = mfitData.team.find(item => String(item.id) === button.dataset.editTeam);
+    if (teamMember) {
+      document.getElementById('edit-service-id').value = teamMember.id;
+      document.getElementById('edit-service-name').value = teamMember.name;
+      document.getElementById('edit-service-type').value = teamMember.role;
+      document.getElementById('edit-team-role').value = teamMember.role;
+      document.getElementById('edit-service-description').value = `${teamMember.spec} - ${teamMember.bio}`;
+      document.getElementById('edit-service-modal').classList.remove('hidden');
+    }
   }));
   document.querySelectorAll('[data-delete-gallery]').forEach(button => button.addEventListener('click', () => {
     mfitData.gallery = mfitData.gallery.filter(item => String(item.id) !== button.dataset.deleteGallery);
@@ -1770,15 +2278,24 @@ function renderAdminPanels() {
     <div class="admin-item">
       <strong>${item.name}</strong>
       <small>${item.type} · ${formatPrice(item.price)}</small>
-      <button type="button" class="btn btn-secondary btn-sm" data-delete-service="${item.id}">Eliminar</button>
+      <div class="admin-item-actions">
+        <button type="button" class="btn btn-secondary btn-sm" data-edit-service="${item.id}">Editar</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-delete-service="${item.id}">Eliminar</button>
+      </div>
     </div>
   `).join('');
 
   usersContainer.innerHTML = state.users.map(item => `
-    <div class="user-item">
-      <strong>${item.name}</strong>
+    <div class="user-item${item.isPremium ? ' is-premium' : ''}${isUserBaja(item) ? ' is-baja' : ''}">
+      <strong>${item.name}${item.isPremium ? premiumBadgeHtml() : ''}</strong>
       <small>${item.email} · ${item.role}</small>
-      <button type="button" class="btn btn-secondary btn-sm" data-delete-user="${item.id}">Eliminar</button>
+      ${item.role === 'cliente' ? userStatusPillHtml(item) : ''}
+      ${userBajaSinceText(item) ? `<small>${userBajaSinceText(item)}</small>` : ''}
+      <div class="admin-item-actions">
+        <button type="button" class="btn btn-sm ${item.isPremium ? 'premium-toggle-active' : 'premium-toggle'}" data-toggle-premium="${item.id}" title="${item.isPremium ? 'Quitar Premium' : 'Marcar como Premium'}">${item.isPremium ? '★ Premium' : '☆ Hacer Premium'}</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-edit-user="${item.id}">Editar</button>
+        ${userStatusActionsHtml(item)}
+      </div>
     </div>
   `).join('');
   if (historyContainer) {
@@ -1846,29 +2363,34 @@ function renderAdminPanels() {
     });
   });
 
-  usersContainer.querySelectorAll('[data-delete-user]').forEach(button => {
-    button.addEventListener('click', async () => {
-      if (!isAdmin()) return;
-      const id = button.dataset.deleteUser;
-      const user = state.users.find(item => String(item.id) === id);
-      if (!user || String(user.id) === String(state.currentUserId)) {
-        toastWarning('No puedes eliminar la cuenta con la que estás conectado.');
-        return;
-      }
-      const confirmed = await showConfirm(`¿Eliminar a ${user.name}? Esta acción no se puede deshacer.`, { title: 'Eliminar cliente', icon: '🗑️', confirmText: 'Eliminar' });
-      if (!confirmed) return;
-      state.users = state.users.filter(item => String(item.id) !== id);
-      state.deletedUserIds = state.deletedUserIds || [];
-      state.deletedUserEmails = state.deletedUserEmails || [];
-      if (typeof user.id === 'string') state.deletedUserIds.push(user.id);
-      if (user.email) state.deletedUserEmails.push(user.email.toLowerCase());
-      state.purchases = state.purchases.filter(item => String(item.userId) !== id);
-      state.reservations = state.reservations.filter(item => String(item.userId) !== id);
-      await saveState();
-      renderAdminPanels();
-      toastSuccess('Cliente eliminado de MIFIT.');
-    });
+servicesContainer.querySelectorAll('[data-edit-service]').forEach(button => button.addEventListener('click', () => {
+  const service = state.services.find(item => String(item.id) === button.dataset.editService);
+  if (service) {
+    const modal = document.getElementById('edit-service-modal');
+    modal.dataset.entityType = 'bonus'; // Identifica que es un bono/tarifa
+
+    document.getElementById('edit-service-id').value = service.id;
+    document.getElementById('edit-service-name').value = service.name;
+    document.getElementById('edit-service-type').value = service.type;
+    document.getElementById('edit-service-description').value = service.description || '';
+    modal.classList.remove('hidden');
+  }
+}));
+
+  usersContainer.querySelectorAll('[data-toggle-premium]').forEach(button => {
+    button.addEventListener('click', () => toggleUserPremium(button.dataset.togglePremium));
   });
+
+  usersContainer.querySelectorAll('[data-edit-user]').forEach(button => button.addEventListener('click', () => {
+    const user = state.users.find(item => String(item.id) === button.dataset.editUser);
+    if (user) {
+      document.getElementById('edit-user-id').value = user.id;
+      document.getElementById('edit-user-name').value = user.name;
+      document.getElementById('edit-user-email').value = user.email;
+      document.getElementById('edit-user-role').value = user.role;
+      document.getElementById('edit-user-modal').classList.remove('hidden');
+    }
+  }));
 
   // --- NUEVA LÓGICA: Llenar el desplegable de clases vinculadas al crear bonos ---
   const linkedActivitySelect = document.getElementById('service-linked-activity');
@@ -1954,6 +2476,101 @@ async function handleAdminUserSubmit(event) {
   }
 }
 
+// Funciones de edición
+async function handleEditActivitySubmit(event) {
+  event.preventDefault();
+  const id = document.getElementById('edit-activity-id').value;
+  const activity = state.activities.find(item => String(item.id) === id);
+  if (!activity) return;
+
+  activity.title = document.getElementById('edit-activity-title').value.trim();
+  activity.date = new Date(document.getElementById('edit-activity-date').value + 'T' + document.getElementById('edit-activity-time').value).toISOString();
+  activity.time = document.getElementById('edit-activity-time').value;
+  activity.coach = document.getElementById('edit-activity-coach').value.trim();
+  activity.duration = Number(document.getElementById('edit-activity-duration').value);
+  activity.capacity = Number(document.getElementById('edit-activity-capacity').value);
+  activity.description = document.getElementById('edit-activity-description').value.trim();
+
+  await saveState();
+  document.getElementById('edit-activity-modal').classList.add('hidden');
+  renderCalendar();
+  renderSelectedDay();
+  renderAdminPanels();
+  toastSuccess('Actividad actualizada correctamente.');
+}
+
+async function handleEditServiceSubmit(event) {
+  event.preventDefault();
+  const id = document.getElementById('edit-service-id')?.value;
+  const modal = document.getElementById('edit-service-modal');
+  const entityType = modal?.dataset.entityType;
+
+  if (!id) {
+    console.error('No se encontró el ID del servicio a editar.');
+    return;
+  }
+
+  // 1. Edición de Servicios del Centro
+  if (entityType === 'center') {
+    const centerService = mfitData.services.find(item => String(item.id) === String(id));
+    if (centerService) {
+      centerService.name = document.getElementById('edit-service-name').value.trim();
+      centerService.desc = document.getElementById('edit-service-description').value.trim();
+
+      await persistContent();
+      modal.classList.add('hidden');
+      renderAdminPanels();
+      renderCenterConfig();
+      toastSuccess('Servicio del centro actualizado correctamente.');
+      return;
+    }
+  }
+
+  // 2. Edición de Bonos / Tarifas
+  if (entityType === 'bonus' || !entityType) {
+    const bonusService = state.services.find(item => String(item.id) === String(id));
+    if (bonusService) {
+      bonusService.name = document.getElementById('edit-service-name').value.trim();
+      bonusService.type = document.getElementById('edit-service-type').value.trim();
+      bonusService.description = document.getElementById('edit-service-description').value.trim();
+
+      await saveState();
+      modal.classList.add('hidden');
+      renderAdminPanels();
+      renderBonosList();
+      renderProfile();
+      toastSuccess('Servicio/Bono actualizado correctamente.');
+      return;
+    }
+  }
+
+  console.warn('No se encontró ningún servicio con el ID:', id);
+}
+
+async function handleEditUserSubmit(event) {
+  event.preventDefault();
+  const id = document.getElementById('edit-user-id').value;
+  const user = state.users.find(item => String(item.id) === id);
+  if (!user) return;
+
+  user.name = document.getElementById('edit-user-name').value.trim();
+  user.email = document.getElementById('edit-user-email').value.trim();
+  user.role = document.getElementById('edit-user-role').value;
+
+  await db.collection('users').doc(id).set({
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  await saveState();
+  document.getElementById('edit-user-modal').classList.add('hidden');
+  renderAdminPanels();
+  renderHeader();
+  toastSuccess('Usuario actualizado correctamente.');
+}
+
 function handleContactFormSubmit(event) {
   event.preventDefault();
   const nombre = document.getElementById('contact-nombre').value.trim();
@@ -1991,6 +2608,56 @@ function handleContactFormSubmit(event) {
   document.getElementById('contact-form').reset();
 }
 
+/* ==========================================================
+   SUBNAVEGACIÓN DEL CENTRO: flechas de desplazamiento (móvil)
+   ========================================================== */
+function initCenterSubnavScroller() {
+  const wrap = document.querySelector('.center-subnav-wrap');
+  const nav = wrap?.querySelector('.center-subnav');
+  const leftArrow = wrap?.querySelector('[data-subnav-scroll="left"]');
+  const rightArrow = wrap?.querySelector('[data-subnav-scroll="right"]');
+  if (!nav || !leftArrow || !rightArrow) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const behavior = () => (reduceMotion.matches ? 'auto' : 'smooth');
+
+  // Deshabilita cada flecha cuando ya no hay más contenido hacia ese lado
+  const updateArrows = () => {
+    const maxScroll = nav.scrollWidth - nav.clientWidth;
+    leftArrow.disabled = nav.scrollLeft <= 2;
+    rightArrow.disabled = maxScroll <= 2 || nav.scrollLeft >= maxScroll - 2;
+  };
+
+  // Avanza un poco más de la mitad de lo visible, de forma gradual
+  const scrollStep = direction => {
+    nav.scrollBy({ left: direction * Math.max(nav.clientWidth * 0.6, 120), behavior: behavior() });
+  };
+
+  leftArrow.addEventListener('click', () => scrollStep(-1));
+  rightArrow.addEventListener('click', () => scrollStep(1));
+  nav.addEventListener('scroll', updateArrows, { passive: true });
+  window.addEventListener('resize', updateArrows);
+
+  // Recalcula cuando aparecen/desaparecen pestañas (Clientes, Premium, Admin) o la vista pasa de oculta a visible
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(updateArrows);
+    observer.observe(nav);
+    nav.querySelectorAll('.subnav-btn').forEach(button => observer.observe(button));
+  }
+
+  // Al pulsar una pestaña, se centra en la barra para que no quede a medias
+  nav.querySelectorAll('.subnav-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const navRect = nav.getBoundingClientRect();
+      const buttonRect = button.getBoundingClientRect();
+      const offset = buttonRect.left - navRect.left - (navRect.width - buttonRect.width) / 2;
+      nav.scrollBy({ left: offset, behavior: behavior() });
+    });
+  });
+
+  updateArrows();
+}
+
 function attachEvents() {
   // --- Listeners para Modal de Registro ---
   document.getElementById('register-form')?.addEventListener('submit', handleRegisterSubmit);
@@ -2000,6 +2667,23 @@ function attachEvents() {
   document.getElementById('register-toggle-btn')?.addEventListener('click', () => {
     document.getElementById('register-modal').classList.remove('hidden');
   });
+
+  // --- Botón Premium de la cabecera y vista Premium ---
+  document.getElementById('header-premium-btn')?.addEventListener('click', openPremiumView);
+
+  // --- Gestión de clientes (baja temporal / eliminar definitivo) — delegado para los dos listados ---
+  document.addEventListener('click', event => {
+    const bajaButton = event.target.closest('[data-toggle-baja]');
+    if (bajaButton) {
+      toggleUserBaja(bajaButton.dataset.toggleBaja);
+      return;
+    }
+    const deleteButton = event.target.closest('[data-delete-user]');
+    if (deleteButton) deleteUserPermanently(deleteButton.dataset.deleteUser);
+  });
+  document.getElementById('premium-back-btn')?.addEventListener('click', closePremiumView);
+
+  document.getElementById('premium-audience')?.addEventListener('change', updatePremiumAudienceFields);
 
   // --- Visibilidad de contraseña ---
   document.getElementById('toggle-password')?.addEventListener('click', () => {
@@ -2063,6 +2747,8 @@ function attachEvents() {
     });
   });
 
+  initCenterSubnavScroller();
+
   // --- Controles de Calendario y Formularios ---
   document.getElementById('activity-recurrence')?.addEventListener('change', event => {
     const options = document.getElementById('recurrence-options');
@@ -2073,6 +2759,19 @@ function attachEvents() {
       const weekday = startDate.getDay();
       const checkbox = document.querySelector(`input[name="recurrence-day"][value="${weekday}"]`);
       if (checkbox) checkbox.checked = true;
+    }
+  });
+
+  document.getElementById('premium-image')?.addEventListener('change', event => {
+    const preview = document.getElementById('premium-image-preview');
+    if (!preview) return;
+    const file = event.target.files && event.target.files[0];
+    if (file) {
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    } else {
+      preview.src = '';
+      preview.style.display = 'none';
     }
   });
 
@@ -2135,9 +2834,26 @@ function attachEvents() {
   document.getElementById('admin-center-service-form')?.addEventListener('submit', handleAdminCenterServiceSubmit);
   document.getElementById('admin-team-form')?.addEventListener('submit', handleAdminTeamSubmit);
   document.getElementById('admin-gallery-form')?.addEventListener('submit', handleAdminGallerySubmit);
+  document.getElementById('admin-premium-form')?.addEventListener('submit', handleAdminPremiumSubmit);
   document.getElementById('admin-news-form')?.addEventListener('submit', handleAdminNewsSubmit);
   document.getElementById('close-gallery-modal')?.addEventListener('click', () => document.getElementById('gallery-modal')?.classList.add('hidden'));
   document.getElementById('image-manager-upload-btn')?.addEventListener('click', handleImageManagerUpload);
+
+  // Event listeners para modales de edición
+  document.getElementById('close-edit-activity-modal')?.addEventListener('click', () => {
+    document.getElementById('edit-activity-modal').classList.add('hidden');
+  });
+  document.getElementById('edit-activity-form')?.addEventListener('submit', handleEditActivitySubmit);
+
+  document.getElementById('close-edit-service-modal')?.addEventListener('click', () => {
+    document.getElementById('edit-service-modal').classList.add('hidden');
+  });
+  document.getElementById('edit-service-form')?.addEventListener('submit', handleEditServiceSubmit);
+
+  document.getElementById('close-edit-user-modal')?.addEventListener('click', () => {
+    document.getElementById('edit-user-modal').classList.add('hidden');
+  });
+  document.getElementById('edit-user-form')?.addEventListener('submit', handleEditUserSubmit);
 }
 
 /* ==========================================================
@@ -2223,6 +2939,8 @@ function renderAll() {
   renderHeader();
   renderCalendarReminders();
   renderImageManager();
+  renderPremiumBoard();
+  populatePremiumClientSelect();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
