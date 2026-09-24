@@ -36,16 +36,18 @@
 
   <main class="main-shell">
     <section id="view-home" class="view active-view">
+      <div class="admin-context-tools" data-admin-only><strong>Modo administrador</strong><button type="button"
+          class="btn btn-secondary btn-sm" data-open-editor="home">Gestionar inicio</button></div>
       <div class="landing-hero">
         <div class="landing-copy">
           <span class="label-badge">MIFIT · Entrena diferente</span>
-          <h1>Tu mejor versión empieza hoy.</h1>
-          <p>Entrenamiento funcional, readaptación y acompañamiento real en un espacio diseñado para avanzar.</p>
+          <h1 id="home-title-display">Tu mejor versión empieza hoy.</h1>
+          <p id="home-subtitle-display">Entrenamiento funcional, readaptación y acompañamiento real en un espacio diseñado para avanzar.</p>
           <div class="landing-actions">
-            <button type="button" class="btn btn-primary" data-go-view="view-calendario">Ver calendario</button>
-            <button type="button" class="btn btn-light" data-go-view="view-centro">Conocer MIFIT</button>
+            <button type="button" class="btn btn-primary" id="home-cta1-display" data-go-view="view-calendario">Ver calendario</button>
+            <button type="button" class="btn btn-light" id="home-cta2-display" data-go-view="view-centro">Conocer MIFIT</button>
           </div>
-          <div class="landing-proof"><strong>Grupos reducidos</strong><span>·</span><strong>Coaching
+          <div class="landing-proof" id="home-proof-display"><strong>Grupos reducidos</strong><span>·</span><strong>Coaching
               experto</strong><span>·</span><strong>Progreso medible</strong></div>
         </div>
         <div class="landing-mark" aria-hidden="true"><span class="landing-mark-ring"></span><img src="MIFIT.png"
@@ -379,6 +381,29 @@
                 <div class="form-group"><label>Imagen principal (URL o archivo)</label><input type="url"
                     id="info-hero-image" /><input type="file" id="info-hero-file" accept="image/*" /></div>
                 <button type="submit" class="btn btn-primary">Guardar contenido</button>
+              </form>
+            </details>
+          </div>
+
+          <div id="admin-home-section" class="admin-section admin-editor-section">
+            <details class="admin-collapsible">
+              <summary><h3>Gestión de página de inicio</h3></summary>
+              <p class="admin-help">Edita los textos, banners y secciones principales de la página de inicio dinámicamente.</p>
+              <form id="admin-home-form" class="stack-form">
+                <div class="form-group"><label>Título principal</label><input type="text" id="home-title" required /></div>
+                <div class="form-group"><label>Subtítulo</label><textarea id="home-subtitle" rows="2" required></textarea></div>
+                <div class="form-group"><label>Texto del botón CTA 1</label><input type="text" id="home-cta1" required /></div>
+                <div class="form-group"><label>Texto del botón CTA 2</label><input type="text" id="home-cta2" required /></div>
+                <div class="form-group"><label>Texto de prueba social</label><input type="text" id="home-proof" required /></div>
+                <div class="form-group"><label>Valor 1 - Título</label><input type="text" id="home-value1-title" required /></div>
+                <div class="form-group"><label>Valor 1 - Descripción</label><textarea id="home-value1-desc" rows="2" required></textarea></div>
+                <div class="form-group"><label>Valor 2 - Título</label><input type="text" id="home-value2-title" required /></div>
+                <div class="form-group"><label>Valor 2 - Descripción</label><textarea id="home-value2-desc" rows="2" required></textarea></div>
+                <div class="form-group"><label>Valor 3 - Título</label><input type="text" id="home-value3-title" required /></div>
+                <div class="form-group"><label>Valor 3 - Descripción</label><textarea id="home-value3-desc" rows="2" required></textarea></div>
+                <div class="form-group"><label>Texto CTA sección inferior</label><input type="text" id="home-cta-title" required /></div>
+                <div class="form-group"><label>Texto botón CTA inferior</label><input type="text" id="home-cta-button" required /></div>
+                <button type="submit" class="btn btn-primary">Guardar cambios de inicio</button>
               </form>
             </details>
           </div>
@@ -882,4 +907,4 @@
   <script src="app.js"></script>
 </body>
 
-</html>
+</html>

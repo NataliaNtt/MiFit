@@ -1570,11 +1570,46 @@ function notifyUnreadNews() {
 }
 
 function renderHome() {
+  const homeData = mfitData.info.home || {};
   const homeTitle = document.querySelector('.landing-copy h1');
   const homeSubtitle = document.querySelector('.landing-copy p');
+  const cta1 = document.querySelector('.landing-actions button[data-go-view="view-calendario"]');
+  const cta2 = document.querySelector('.landing-actions button[data-go-view="view-centro"]');
+  const proof = document.querySelector('.landing-proof');
 
-  if (homeTitle) homeTitle.textContent = mfitData.info.landingTitle || 'Tu mejor versión empieza hoy.';
-  if (homeSubtitle) homeSubtitle.textContent = mfitData.info.landingSubtitle || 'Entrenamiento funcional y readaptación física.';
+  if (homeTitle) homeTitle.textContent = homeData.title || 'Tu mejor versión empieza hoy.';
+  if (homeSubtitle) homeSubtitle.textContent = homeData.subtitle || 'Entrenamiento funcional, readaptación y acompañamiento real en un espacio diseñado para avanzar.';
+  if (cta1) cta1.textContent = homeData.cta1 || 'Ver calendario';
+  if (cta2) cta2.textContent = homeData.cta2 || 'Conocer MIFIT';
+  if (proof) proof.textContent = homeData.proof || '+500 clientes activos en nuestra comunidad';
+
+  const valueCards = document.querySelectorAll('.value-card');
+  if (valueCards.length >= 3) {
+    const card1 = valueCards[0];
+    const card2 = valueCards[1];
+    const card3 = valueCards[2];
+
+    if (card1) {
+      card1.querySelector('h3').textContent = homeData.value1Title || 'Entrenamiento Funcional';
+      card1.querySelector('p').textContent = homeData.value1Desc || 'Rutinas adaptadas a tu nivel con supervisión constante.';
+    }
+    if (card2) {
+      card2.querySelector('h3').textContent = homeData.value2Title || 'Readaptación Física';
+      card2.querySelector('p').textContent = homeData.value2Desc || 'Recuperación guiada por profesionales especializados.';
+    }
+    if (card3) {
+      card3.querySelector('h3').textContent = homeData.value3Title || 'Comunidad Activa';
+      card3.querySelector('p').textContent = homeData.value3Desc || 'Entrena en un ambiente motivador y seguro.';
+    }
+  }
+
+  const ctaSection = document.querySelector('.landing-cta');
+  if (ctaSection) {
+    const ctaTitle = ctaSection.querySelector('h2');
+    const ctaButton = ctaSection.querySelector('button');
+    if (ctaTitle) ctaTitle.textContent = homeData.ctaTitle || '¿Listo para empezar tu transformación?';
+    if (ctaButton) ctaButton.textContent = homeData.ctaButton || 'Únete ahora';
+  }
 }
 
 function renderProfile() {
@@ -1612,8 +1647,8 @@ function renderProfile() {
   renderProfileTracking(user);
 
   const premiumPostsHtml = premium ? (
-    premiumPosts.length ? premiumPosts.map(item => `
-      <article class="premium-post">
+    premiumPosts.length ? premiumPosts.map((item, index) => `
+      <article class="premium-post ${index === 0 ? 'premium-post-featured' : ''}">
         <div class="premium-post-head">
           <span class="premium-post-type">${item.type || 'Publicación'}</span>
           <small>${item.date ? new Date(item.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</small>
@@ -1640,15 +1675,13 @@ function renderProfile() {
 
   container.classList.toggle('profile-night-mode', false);
   renderPremiumBoard();
-  container.innerHTML = `
-    <div class="profile-toggle-row">
-      <div class="profile-toggle-text">
-        <strong id="profile-toggle-title">Mi perfil</strong>
-        <small id="profile-toggle-subtitle">Tu actividad, servicios y reservas</small>
-      </div>
-      <button type="button" class="profile-tab-btn premium-toggle-btn" data-premium-toggle="false" aria-expanded="false">★ Premium</button>
-    </div>
 
+  const premiumBody = document.getElementById('premium-zone-body');
+  if (premiumBody) {
+    premiumBody.innerHTML = premiumPostsHtml;
+  }
+
+  container.innerHTML = `
     <div class="profile-tab-panel" data-profile-panel="perfil">
 
     <div class="profile-card${premium ? ' premium-profile-card' : ''}">
@@ -1708,11 +1741,28 @@ function renderProfile() {
       <h3>Reservas</h3>
       <div class="admin-list">
         ${userReservations.length ? userReservations.map(item => `
-          <div class="purchase-item">
-            <strong>${item.title}</strong>
-            <small>${new Date(item.date).toLocaleDateString('es-ES')} · ${item.time || 'Horario'}</small>
-            <button type="button" class="btn btn-secondary btn-sm" data-cancel-reservation="${item.id}">Cancelar reserva</button>
-          </div>
+          <details class="reservation-accordion">
+            <summary class="reservation-summary">
+              <div class="reservation-summary-main">
+                <strong>${item.title}</strong>
+                <small>${new Date(item.date).toLocaleDateString('es-ES')} · ${item.time || 'Horario'}</small>
+              </div>
+              <span class="reservation-status">Ver detalles</span>
+            </summary>
+            <div class="reservation-details">
+              <div class="reservation-info">
+                <p><strong>Actividad:</strong> ${item.title}</p>
+                <p><strong>Fecha:</strong> ${new Date(item.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <p><strong>Hora:</strong> ${item.time || 'Horario por confirmar'}</p>
+                <p><strong>Entrenador:</strong> ${item.trainer || 'Por asignar'}</p>
+                <p><strong>Ubicación:</strong> ${item.location || 'MIFIT Centro'}</p>
+                ${item.notes ? `<p><strong>Notas:</strong> ${item.notes}</p>` : ''}
+              </div>
+              <div class="reservation-actions">
+                <button type="button" class="btn btn-secondary btn-sm" data-cancel-reservation="${item.id}">Cancelar reserva</button>
+              </div>
+            </div>
+          </details>
         `).join('') : '<div class="empty-state">Todavía no has reservado actividades.</div>'}
       </div>
     </div>
@@ -1726,26 +1776,6 @@ function renderProfile() {
       </div>
     </div>
   `;
-
-  const premiumToggle = container.querySelector('[data-premium-toggle]');
-  if (premiumToggle) {
-    premiumToggle.addEventListener('click', () => {
-      const panel = container.querySelector('#profile-premium-panel');
-      const profilePanel = container.querySelector('[data-profile-panel="perfil"]');
-      const title = container.querySelector('#profile-toggle-title');
-      const subtitle = container.querySelector('#profile-toggle-subtitle');
-      if (!panel) return;
-      const willShow = panel.classList.contains('hidden');
-      panel.classList.toggle('hidden', !willShow);
-      if (profilePanel) profilePanel.classList.toggle('hidden', willShow);
-      premiumToggle.classList.toggle('active', willShow);
-      premiumToggle.setAttribute('aria-expanded', String(willShow));
-      premiumToggle.setAttribute('data-premium-toggle', String(willShow));
-      if (title) title.textContent = willShow ? 'Zona Premium' : 'Mi perfil';
-      if (subtitle) subtitle.textContent = willShow ? 'Contenido exclusivo para clientes Premium' : 'Tu actividad, servicios y reservas';
-      container.classList.toggle('profile-night-mode', willShow);
-    });
-  }
 
   container.querySelectorAll('[data-buy-service]').forEach(button => {
     button.addEventListener('click', () => requestPurchase(Number(button.dataset.buyService)));
@@ -2072,6 +2102,46 @@ async function handleAdminInfoSubmit(event) {
   mfitData.info.heroImage = file ? await uploadImage(file, 'hero') : document.getElementById('info-hero-image').value.trim();
   await persistContent();
   toastSuccess('Contenido guardado correctamente.');
+}
+
+async function handleAdminHomeSubmit(event) {
+  event.preventDefault();
+  if (!mfitData.info.home) mfitData.info.home = {};
+
+  mfitData.info.home.title = document.getElementById('home-title').value.trim();
+  mfitData.info.home.subtitle = document.getElementById('home-subtitle').value.trim();
+  mfitData.info.home.cta1 = document.getElementById('home-cta1').value.trim();
+  mfitData.info.home.cta2 = document.getElementById('home-cta2').value.trim();
+  mfitData.info.home.proof = document.getElementById('home-proof').value.trim();
+  mfitData.info.home.value1Title = document.getElementById('home-value1-title').value.trim();
+  mfitData.info.home.value1Desc = document.getElementById('home-value1-desc').value.trim();
+  mfitData.info.home.value2Title = document.getElementById('home-value2-title').value.trim();
+  mfitData.info.home.value2Desc = document.getElementById('home-value2-desc').value.trim();
+  mfitData.info.home.value3Title = document.getElementById('home-value3-title').value.trim();
+  mfitData.info.home.value3Desc = document.getElementById('home-value3-desc').value.trim();
+  mfitData.info.home.ctaTitle = document.getElementById('home-cta-title').value.trim();
+  mfitData.info.home.ctaButton = document.getElementById('home-cta-button').value.trim();
+
+  await persistContent();
+  renderHome();
+  toastSuccess('Página de inicio actualizada correctamente.');
+}
+
+function loadHomeFormData() {
+  const homeData = mfitData.info.home || {};
+  document.getElementById('home-title').value = homeData.title || 'Tu mejor versión empieza hoy.';
+  document.getElementById('home-subtitle').value = homeData.subtitle || 'Entrenamiento funcional, readaptación y acompañamiento real en un espacio diseñado para avanzar.';
+  document.getElementById('home-cta1').value = homeData.cta1 || 'Ver calendario';
+  document.getElementById('home-cta2').value = homeData.cta2 || 'Conocer MIFIT';
+  document.getElementById('home-proof').value = homeData.proof || '+500 clientes activos en nuestra comunidad';
+  document.getElementById('home-value1-title').value = homeData.value1Title || 'Entrenamiento Funcional';
+  document.getElementById('home-value1-desc').value = homeData.value1Desc || 'Rutinas adaptadas a tu nivel con supervisión constante.';
+  document.getElementById('home-value2-title').value = homeData.value2Title || 'Readaptación Física';
+  document.getElementById('home-value2-desc').value = homeData.value2Desc || 'Recuperación guiada por profesionales especializados.';
+  document.getElementById('home-value3-title').value = homeData.value3Title || 'Comunidad Activa';
+  document.getElementById('home-value3-desc').value = homeData.value3Desc || 'Entrena en un ambiente motivador y seguro.';
+  document.getElementById('home-cta-title').value = homeData.ctaTitle || '¿Listo para empezar tu transformación?';
+  document.getElementById('home-cta-button').value = homeData.ctaButton || 'Únete ahora';
 }
 
 function handleAdminActivitySubmit(event) {
@@ -2706,6 +2776,10 @@ function attachEvents() {
       if (editor) {
         editor.classList.add('editor-selected');
         editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        editor.querySelector('details').open = true;
+        if (button.dataset.openEditor === 'home') {
+          loadHomeFormData();
+        }
       }
     });
   });
@@ -2830,6 +2904,7 @@ function attachEvents() {
   document.getElementById('admin-service-form')?.addEventListener('submit', handleAdminServiceSubmit);
   document.getElementById('admin-user-form')?.addEventListener('submit', handleAdminUserSubmit);
   document.getElementById('admin-info-form')?.addEventListener('submit', handleAdminInfoSubmit);
+  document.getElementById('admin-home-form')?.addEventListener('submit', handleAdminHomeSubmit);
   document.getElementById('admin-activity-form')?.addEventListener('submit', handleAdminActivitySubmit);
   document.getElementById('admin-center-service-form')?.addEventListener('submit', handleAdminCenterServiceSubmit);
   document.getElementById('admin-team-form')?.addEventListener('submit', handleAdminTeamSubmit);
