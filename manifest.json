@@ -4,27 +4,30 @@
   "description": "Aplicación de entrenamiento y seguimiento de actividad física.",
   "icons": [
     {
-      "src": "MIFITapp.png",
+      "src": "MIFIT.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "MIFITapp.png",
+      "src": "MIFIT.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "MIFITapp.png",
+      "src": "MIFIT.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
   "background_color": "#ffffff",
   "theme_color": "#dc2626",
   "display": "standalone",
-  "orientation": "portrait"
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "prefer_related_applications": false
 }
