@@ -3258,7 +3258,43 @@ input[type="checkbox"] {
   line-height: 1.5;
 }
 
-.premium-admin-item { position: relative; }
+.premium-admin-item {
+  position: relative;
+  padding: 16px 12px 14px;
+  min-width: 0;
+}
+
+/* La ✕ se ancla en la esquina superior derecha y deja de ocupar su propia fila */
+.premium-admin-item .admin-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 12px 0 0;
+  width: 100%;
+}
+
+/* Zona táctil cómoda para móvil */
+.premium-admin-item .icon-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 6px 10px;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+/* El texto envuelve siempre (títulos largos, enlaces, correos con URL largas…) */
+.premium-admin-item strong,
+.premium-admin-item small,
+.premium-admin-preview {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .premium-admin-preview { margin-top: 8px; }
 
 /* Preview opcional de foto en el formulario premium del admin */
@@ -3295,6 +3331,42 @@ input[type="checkbox"] {
   margin-bottom: 12px;
 }
 @media (max-width: 640px) {
+  .premium-admin-section {
+    padding: 16px 14px;
+    margin: 0 2px;
+  }
+
+  #admin-premium-form {
+    padding: 4px 2px 8px;
+  }
+
+  #admin-premium-form .form-group {
+    margin-bottom: 18px;
+  }
+
+  #admin-premium-form label {
+    margin-bottom: 7px;
+    line-height: 1.3;
+  }
+
+  #admin-premium-form .form-control,
+  #admin-premium-form input[type="file"] {
+    margin-bottom: 2px;
+  }
+
+  #admin-premium-content {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(214, 33, 42, 0.16);
+  }
+
+  .premium-admin-recipient {
+    display: inline-flex;
+    margin: 8px 0 0;
+    padding: 5px 10px;
+    line-height: 1.25;
+  }
+
   .admin-premium-form .premium-form-row { grid-template-columns: 1fr; }
   .premium-perks { flex-direction: column; align-items: stretch; }
 }

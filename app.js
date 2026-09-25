@@ -12,10 +12,27 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
-const stateRef = db.collection('mfit').doc('state');
 const secondaryApp = firebase.initializeApp(firebaseConfig, 'mfit-user-creator');
 const secondaryAuth = secondaryApp.auth();
 const today = new Date();
+
+/* ==========================================================
+   NUEVA ARQUITECTURA DE DATOS: COLEECCIONES INDEPENDIENTES
+   Ya NO se guarda todo en un único documento (mfit/state).
+   Cada entidad vive en su propia colección para que las
+   acciones de un usuario nunca puedan sobrescribir el resto.
+   ========================================================== */
+const usersCol = db.collection('users');
+const activitiesCol = db.collection('activities');
+const reservationsCol = db.collection('reservations');
+const purchasesCol = db.collection('purchases');
+const purchaseHistoryCol = db.collection('purchase_history');
+const premiumPostsCol = db.collection('premium_posts');
+const consultasCol = db.collection('consultas');
+const siteContentRef = db.collection('site_content').doc('content');
+const runtimeRef = db.collection('site_content').doc('runtime');
+// Referencia SOLO LECTURA al antiguo documento, para la migración única.
+const legacyStateRef = db.collection('mfit').doc('state');
 
 /* ==========================================================
    SISTEMA DE NOTIFICACIONES TOAST (sustituye a alert())
@@ -183,7 +200,10 @@ function buildState() {
     activities: buildInitialActivities(),
     reservations: [],
     reservationHistory: [],
-    purchaseHistory: []
+    purchaseHistory: [],
+    revision: 0,
+    loadedFromCloud: false,
+    loadFailed: false
   };
 }
 
@@ -232,61 +252,377 @@ let state = buildState();
 let userRole = 'cliente';
 Object.assign(mfitData, state.content);
 
-function saveState() {
-  state.content = mfitData;
-  const cloudState = {
-    ...state,
-    users: state.users.map(({ password, ...user }) => user),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  return stateRef.set(cloudState);
+/* ==========================================================
+   PERSISTENCIA POR COLECCIONES (sustituye a saveState)
+   Cada operación escribe SOLO su propia colección: un usuario
+   ya no puede sobrescribir anuncios premium ni datos ajenos.
+   ========================================================== */
+
+function snapshotData(docSnap) {
+  if (!docSnap || !docSnap.exists) return null;
+  return { id: docSnap.id, ...docSnap.data() };
 }
 
-async function loadCloudState() {
+function snapshotList(querySnap) {
+  if (!querySnap || !querySnap.docs) return [];
+  return querySnap.docs.map(snapshotData);
+}
+
+function userScopedCollection(col) {
+  const user = auth.currentUser;
+  return isAdmin() || !user ? col.get() : col.where('userId', '==', user.uid).get();
+}
+
+async function dbWrite(op, errorMsg = 'No se pudo guardar en la nube.') {
+  if (state.loadFailed) {
+    toastWarning('La app no pudo cargar los datos de la nube. Refresca la página antes de guardar.', { title: 'Sin conexión' });
+    return 'error';
+  }
   try {
-    const snapshot = await stateRef.get();
-    if (snapshot.exists) {
-      const cloudState = snapshot.data();
-      state = { ...state, ...cloudState, users: cloudState.users || state.users };
-      state.currentUserId = null;
-      state.reservations = state.reservations || [];
-      state.reservationHistory = state.reservationHistory || [];
-      state.purchaseHistory = state.purchaseHistory || [];
-      state.services = (state.services || defaultServices).map(service => ({
-        ...service,
-        billingType: service.billingType || 'sessions',
-        sessions: Number(service.sessions || (service.billingType === 'time' ? 0 : 8)),
-        durationDays: Number(service.durationDays || (service.billingType === 'time' ? 30 : 0))
-      }));
-      state.purchases = (state.purchases || []).map(purchase => {
-        const service = state.services.find(item => item.id === purchase.serviceId);
-        const billingType = purchase.billingType || service?.billingType || 'sessions';
-        const sessions = purchase.sessions || service?.sessions || 8;
-        const durationDays = purchase.durationDays || service?.durationDays || 0;
-        const normalizedPurchase = { ...purchase, billingType, sessions, durationDays, remainingSessions: purchase.remainingSessions ?? (purchase.status === 'aprobado' && billingType === 'sessions' ? sessions : 0) };
-        if (billingType === 'time' && !normalizedPurchase.expiresAt) {
-          const start = new Date(purchase.activatedAt || purchase.approvedAt || purchase.date);
-          if (purchase.status === 'aprobado' && !isNaN(start.getTime()) && (purchase.durationDays || service?.durationDays)) {
-            const expiry = new Date(start);
-            expiry.setDate(expiry.getDate() + Number(purchase.durationDays || service?.durationDays || 30));
-            normalizedPurchase.expiresAt = expiry.toISOString();
-          }
-        }
-        return normalizedPurchase;
-      });
-      const knownHistoryIds = new Set(state.purchaseHistory.map(item => String(item.id)));
-      state.purchaseHistory = state.purchaseHistory.concat(state.purchases.filter(item => item.status === 'aprobado' && !knownHistoryIds.has(String(item.id))).map(item => ({ ...item, event: 'approved', archivedAt: item.approvedAt || item.date })));
-      if (state.selectedDate && typeof state.selectedDate.toDate === 'function') state.selectedDate = state.selectedDate.toDate();
-      state.activities = (state.activities || []).map(activity => ({
-        ...activity,
-        date: activity.date && typeof activity.date.toDate === 'function' ? activity.date.toDate().toISOString() : activity.date
-      }));
-      Object.assign(mfitData, state.content || {});
-    } else {
-      await saveState();
+    await op();
+    return 'ok';
+  } catch (error) {
+    console.error(error);
+    toastError(`${errorMsg} Revisa tu conexión o los permisos de Firestore.`);
+    return 'error';
+  }
+}
+
+// ---------- premium_posts (solo admin) ----------
+function addPremiumPost(post) {
+  return dbWrite(() => premiumPostsCol.add({ ...post, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(ref => { post.id = ref.id; }), 'No se pudo publicar el contenido Premium.');
+}
+
+function updatePremiumPost(id, data) {
+  return dbWrite(() => premiumPostsCol.doc(String(id)).update(data), 'No se pudo actualizar la publicación Premium.');
+}
+function removePremiumPost(id) {
+  return dbWrite(() => premiumPostsCol.doc(String(id)).delete(), 'No se pudo eliminar la publicación Premium.');
+}
+
+// ---------- users ----------
+function updateUserDocument(id, data) {
+  return dbWrite(() => usersCol.doc(String(id)).set(data, { merge: true }), 'No se pudo actualizar el cliente.');
+}
+function deleteUserDocument(id) {
+  return dbWrite(() => usersCol.doc(String(id)).delete(), 'No se pudo eliminar el cliente de Firebase.');
+}
+
+// ---------- activities (solo admin) ----------
+function createActivityDocument(activity) {
+  return dbWrite(() => activitiesCol.doc(String(activity.id)).set(activity), 'No se pudo crear la actividad.');
+}
+function updateActivityDocument(id, data) {
+  return dbWrite(() => activitiesCol.doc(String(id)).set(data, { merge: true }), 'No se pudo actualizar la actividad.');
+}
+function deleteActivityDocument(id) {
+  return dbWrite(() => activitiesCol.doc(String(id)).delete(), 'No se pudo eliminar la actividad.');
+}
+
+// ---------- reservations (solo el usuario propietario) ----------
+function createReservationDocument(reservation) {
+  const user = auth.currentUser;
+  if (!user) return Promise.resolve('error');
+  return dbWrite(() => reservationsCol.add({ ...reservation, userId: user.uid, status: 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(ref => { reservation.id = ref.id; }), 'No se pudo registrar la reserva.');
+}
+function updateReservationDocument(id, data) {
+  return dbWrite(() => reservationsCol.doc(String(id)).update(data), 'No se pudo actualizar la reserva.');
+}
+function deleteReservationDocument(id) {
+  return dbWrite(() => reservationsCol.doc(String(id)).delete(), 'No se pudo cancelar la reserva en la nube.');
+}
+const createReservation = createReservationDocument;
+
+// ---------- purchases (el usuario crea las suyas; admin las gestiona) ----------
+function createPurchaseDocument(purchase) {
+  const user = auth.currentUser;
+  if (!user) return Promise.resolve('error');
+  return dbWrite(() => purchasesCol.add({ ...purchase, userId: user.uid, status: 'pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(ref => { purchase.id = ref.id; }), 'No se pudo registrar la compra.');
+}
+function updatePurchaseDocument(id, data) {
+  return dbWrite(() => purchasesCol.doc(String(id)).update(data), 'No se pudo actualizar la compra.');
+}
+function deletePurchaseDocument(id) {
+  return dbWrite(() => purchasesCol.doc(String(id)).delete(), 'No se pudo cancelar la solicitud en la nube.');
+}
+const registerPurchase = createPurchaseDocument;
+
+// ---------- purchase_history (solo admin) ----------
+function addPurchaseHistoryDocument(entry) {
+  return dbWrite(() => purchaseHistoryCol.doc(String(entry.id)).set(entry, { merge: true }), 'No se pudo guardar el histórico.');
+}
+function deletePurchaseHistoryDocument(id) {
+  return dbWrite(() => purchaseHistoryCol.doc(String(id)).delete(), 'No se pudo eliminar la transacción del histórico.');
+}
+
+// ---------- consultas (creación pública; gestión de admin) ----------
+function createConsultaDocument(consulta) {
+  return dbWrite(() => consultasCol.doc(String(consulta.id)).set(consulta, { merge: true }), 'No se pudo enviar el mensaje.');
+}
+function updateConsultaDocument(id, data) {
+  return dbWrite(() => consultasCol.doc(String(id)).set(data, { merge: true }), 'No se pudo actualizar el mensaje.');
+}
+function deleteConsultaDocument(id) {
+  return dbWrite(() => consultasCol.doc(String(id)).delete(), 'No se pudo eliminar el mensaje.');
+}
+
+// ---------- contenido del sitio (info, servicios, equipo, galería, novedades, bonos) ----------
+function saveSiteContent() {
+  return dbWrite(() => siteContentRef.set({
+    info: mfitData.info || {},
+    services: mfitData.services || [],
+    team: mfitData.team || [],
+    gallery: mfitData.gallery || [],
+    news: mfitData.news || [],
+    bonos: state.services || []
+  }, { merge: true }), 'No se pudo guardar el contenido de la web.');
+}
+
+// ---------- runtime (listas de cuentas eliminadas / bloqueadas) ----------
+function saveRuntime() {
+  return dbWrite(() => runtimeRef.set({
+    deletedUserIds: state.deletedUserIds || [],
+    deletedUserEmails: state.deletedUserEmails || []
+  }, { merge: true }), 'No se pudo guardar la configuración de acceso.');
+}
+
+/* ==========================================================
+   CARGA DE DATOS DESDE LAS COLECCIONES
+   ========================================================== */
+
+function normalizeService(service) {
+  return {
+    ...service,
+    billingType: service.billingType || 'sessions',
+    sessions: Number(service.sessions || (service.billingType === 'time' ? 0 : 8)),
+    durationDays: Number(service.durationDays || (service.billingType === 'time' ? 30 : 0))
+  };
+}
+
+function normalizePurchases(purchases) {
+  return (purchases || []).map(purchase => {
+    const service = state.services.find(item => String(item.id) === String(purchase.serviceId));
+    const billingType = purchase.billingType || service?.billingType || 'sessions';
+    const sessions = purchase.sessions || service?.sessions || 8;
+    const durationDays = purchase.durationDays || service?.durationDays || 0;
+    const normalizedPurchase = { ...purchase, billingType, sessions, durationDays, remainingSessions: purchase.remainingSessions ?? (purchase.status === 'aprobado' && billingType === 'sessions' ? sessions : 0) };
+    if (billingType === 'time' && !normalizedPurchase.expiresAt) {
+      const start = new Date(purchase.activatedAt || purchase.approvedAt || purchase.date);
+      if (purchase.status === 'aprobado' && !isNaN(start.getTime()) && (purchase.durationDays || service?.durationDays)) {
+        const expiry = new Date(start);
+        expiry.setDate(expiry.getDate() + Number(purchase.durationDays || service?.durationDays || 30));
+        normalizedPurchase.expiresAt = expiry.toISOString();
+      }
+    }
+    return normalizedPurchase;
+  });
+}
+
+function normalizeDate(value) {
+  return value && typeof value.toDate === 'function' ? value.toDate().toISOString() : value;
+}
+
+/* Reconstruye activity.booked y activity.reservations a partir de la
+   colección /reservations (fuente única de verdad para la ocupación). */
+function rebuildActivityOccupancy() {
+  (state.activities || []).forEach(activity => {
+    activity.reservations = (state.reservations || [])
+      .filter(item => String(item.activityId) === String(activity.id))
+      .map(item => ({ userId: item.userId, date: item.reservedAt || item.date }));
+    activity.booked = activity.reservations.length;
+  });
+}
+
+function applyContentToMemory(content) {
+  if (!content) return;
+  if (content.info) mfitData.info = content.info;
+  if (content.services) mfitData.services = content.services;
+  if (content.team) mfitData.team = content.team;
+  if (content.gallery) mfitData.gallery = content.gallery;
+  if (content.news) mfitData.news = content.news;
+  if (content.bonos) state.services = (content.bonos || []).map(normalizeService);
+}
+
+/* Migración única: vuelca el antiguo documento mfit/state a las colecciones.
+   Las escrituras son "mejor esfuerzo" (no rompen la carga si aún no hay sesión
+   de admin); el contenido siempre se aplica en memoria al momento. */
+async function migrateLegacyState(legacy) {
+  if (!legacy) return;
+  const content = legacy.content || {};
+  const safe = (promise) => promise.catch(err => console.warn('[migración] Pieza no escrita aún (se reintentará con admin):', err && err.message));
+
+  await Promise.all([
+    safe(siteContentRef.set({
+      info: content.info || {},
+      services: content.services || [],
+      team: content.team || [],
+      gallery: content.gallery || [],
+      news: content.news || [],
+      bonos: legacy.services || []
+    })),
+    safe(runtimeRef.set({
+      deletedUserIds: legacy.deletedUserIds || [],
+      deletedUserEmails: legacy.deletedUserEmails || [],
+      migratedAt: firebase.firestore.FieldValue.serverTimestamp()
+    })),
+    ...(content.premium || []).map(post => safe(premiumPostsCol.doc(String(post.id)).set(post))),
+    ...(content.consultas || []).map(c => safe(consultasCol.doc(String(c.id)).set(c))),
+    ...(legacy.users || []).map(u => safe(usersCol.doc(String(u.id)).set(u))),
+    ...(legacy.activities || []).map(a => safe(activitiesCol.doc(String(a.id)).set(a))),
+    ...(legacy.reservations || []).map(r => safe(reservationsCol.doc(String(r.id)).set(r))),
+    ...(legacy.purchases || []).map(p => safe(purchasesCol.doc(String(p.id)).set(p))),
+    ...(legacy.purchaseHistory || []).map(h => safe(purchaseHistoryCol.doc(String(h.id)).set(h)))
+  ]);
+
+  // Reflejar la migración en memoria (las lecturas de colecciones venían vacías).
+  state.deletedUserIds = legacy.deletedUserIds || [];
+  state.deletedUserEmails = legacy.deletedUserEmails || [];
+  state.users = legacy.users || state.users;
+  state.activities = (legacy.activities || []).map(a => ({ ...a, date: normalizeDate(a.date) }));
+  state.reservations = legacy.reservations || [];
+  state.purchases = normalizePurchases(legacy.purchases || []);
+  state.purchaseHistory = legacy.purchaseHistory || [];
+  state.services = (legacy.services || defaultServices).map(normalizeService);
+  mfitData.premium = content.premium || [];
+  mfitData.consultas = content.consultas || [];
+  applyContentToMemory(content);
+  state.needsMigration = true;
+}
+
+/* Cuando entra un administrador se completa la migración y se elimina el
+   antiguo documento mfit/state (ya no es necesario). */
+async function ensureMigration() {
+  if (!isAdmin()) return;
+  try {
+    const [legacySnap, contentSnap] = await Promise.all([
+      legacyStateRef.get().catch(() => null),
+      siteContentRef.get().catch(() => null)
+    ]);
+    if (legacySnap && legacySnap.exists && (!contentSnap || !contentSnap.exists)) {
+      await migrateLegacyState(legacySnap.data());
+      await legacyStateRef.delete().catch(() => {});
+      state.needsMigration = false;
+      console.info('[migración] Completada y documento antiguo eliminado.');
+    } else if (!legacySnap || !legacySnap.exists) {
+      state.needsMigration = false;
     }
   } catch (error) {
+    console.warn('[migración] No se pudo completar ahora:', error);
+  }
+}
+
+/* Primer arranque (sin datos previos): siembra las colecciones por defecto. */
+async function bootstrapCollections() {
+  await siteContentRef.set({
+    info: mfitData.info || {},
+    services: mfitData.services || [],
+    team: mfitData.team || [],
+    gallery: mfitData.gallery || [],
+    news: mfitData.news || [],
+    bonos: state.services || []
+  });
+  await Promise.all(state.activities.map(activity => activitiesCol.doc(String(activity.id)).set(activity)));
+  await saveRuntime();
+  console.info('[bootstrap] Colecciones inicializadas con los datos por defecto.');
+}
+
+/* Lectura inicial de todas las colecciones (se ejecuta al abrir la app). */
+async function loadCloudState() {
+  state.loadedFromCloud = false;
+  state.loadFailed = false;
+  try {
+    const [
+      usersSnap, activitiesSnap, premiumSnap, reservationsSnap, purchasesSnap,
+      historySnap, consultasSnap, contentSnap, runtimeDoc, legacySnap
+    ] = await Promise.all([
+      userScopedCollection(usersCol).catch(() => null),
+      activitiesCol.get().catch(() => null),
+      premiumPostsCol.get().catch(() => null),
+      userScopedCollection(reservationsCol).catch(() => null),
+      userScopedCollection(purchasesCol).catch(() => null),
+      purchaseHistoryCol.get().catch(() => null),
+      consultasCol.get().catch(() => null),
+      siteContentRef.get().catch(() => null),
+      runtimeRef.get().catch(() => null),
+      legacyStateRef.get().catch(() => null)
+    ]);
+
+    state.users = snapshotList(usersSnap);
+    state.activities = snapshotList(activitiesSnap).map(a => ({ ...a, date: normalizeDate(a.date) }));
+    mfitData.premium = snapshotList(premiumSnap);
+    state.reservations = snapshotList(reservationsSnap);
+    mfitData.consultas = snapshotList(consultasSnap).sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+
+    if (contentSnap && contentSnap.exists) applyContentToMemory(contentSnap.data() || {});
+    state.purchases = normalizePurchases(snapshotList(purchasesSnap));
+    state.purchaseHistory = snapshotList(historySnap);
+
+    if (runtimeDoc && runtimeDoc.exists) {
+      const runtime = runtimeDoc.data() || {};
+      state.deletedUserIds = runtime.deletedUserIds || [];
+      state.deletedUserEmails = runtime.deletedUserEmails || [];
+    }
+
+    // Migración única desde el antiguo mfit/state.
+    const legacyNeeded = legacySnap && legacySnap.exists && (!contentSnap || !contentSnap.exists);
+    if (legacyNeeded) {
+      await migrateLegacyState(legacySnap.data());
+    } else if (!legacySnap?.exists && (!contentSnap || !contentSnap.exists) && !premiumSnap?.size && !state.activities.length) {
+      // Proyecto completamente nuevo: sembrar las colecciones (mejor esfuerzo).
+      await bootstrapCollections().catch(() => null);
+    }
+
+    rebuildActivityOccupancy();
+    state.loadedFromCloud = true;
+  } catch (error) {
+    state.loadedFromCloud = false;
+    state.loadFailed = true;
     console.error('No se pudo cargar Firebase:', error);
+    toastError('No se pudieron cargar los datos desde la nube. Comprueba tu conexión y refresca la página.', { title: 'Sin conexión a la nube', duration: 8000 });
+  }
+}
+
+/* Refresco en mitad de sesión: relee las colecciones y conserva la sesión actual. */
+async function refreshFromCloud() {
+  const localUserId = state.currentUserId;
+  try {
+    const [
+      usersSnap, activitiesSnap, premiumSnap, reservationsSnap, purchasesSnap,
+      historySnap, consultasSnap, contentSnap, runtimeDoc
+    ] = await Promise.all([
+      userScopedCollection(usersCol).catch(() => null),
+      activitiesCol.get().catch(() => null),
+      premiumPostsCol.get().catch(() => null),
+      userScopedCollection(reservationsCol).catch(() => null),
+      userScopedCollection(purchasesCol).catch(() => null),
+      purchaseHistoryCol.get().catch(() => null),
+      consultasCol.get().catch(() => null),
+      siteContentRef.get().catch(() => null),
+      runtimeRef.get().catch(() => null)
+    ]);
+
+    if (usersSnap) state.users = snapshotList(usersSnap);
+    if (activitiesSnap) state.activities = snapshotList(activitiesSnap).map(a => ({ ...a, date: normalizeDate(a.date) }));
+    if (premiumSnap) mfitData.premium = snapshotList(premiumSnap);
+    if (reservationsSnap) state.reservations = snapshotList(reservationsSnap);
+    if (contentSnap && contentSnap.exists) applyContentToMemory(contentSnap.data() || {});
+    if (purchasesSnap) state.purchases = normalizePurchases(snapshotList(purchasesSnap));
+    if (historySnap) state.purchaseHistory = snapshotList(historySnap);
+    if (consultasSnap) mfitData.consultas = snapshotList(consultasSnap).sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+    if (runtimeDoc && runtimeDoc.exists) {
+      const runtime = runtimeDoc.data() || {};
+      state.deletedUserIds = runtime.deletedUserIds || [];
+      state.deletedUserEmails = runtime.deletedUserEmails || [];
+    }
+
+    rebuildActivityOccupancy();
+    state.currentUserId = localUserId;
+    state.loadedFromCloud = true;
+    return true;
+  } catch (error) {
+    console.error('No se pudo refrescar desde la nube:', error);
+    state.currentUserId = localUserId;
+    return false;
   }
 }
 
@@ -505,7 +841,6 @@ async function toggleUserBaja(userId) {
     accountSynced = false;
     console.error('No se pudo sincronizar el estado de baja:', error);
   }
-  await saveState();
   renderAdminPanels();
   toastSuccess(
     goingToBaja ? `${user.name} está de baja: no podrá iniciar sesión. Sus datos se han conservado.` : `${user.name} vuelve a estar de alta y ya puede entrar.`,
@@ -541,18 +876,17 @@ async function deleteUserPermanently(userId) {
     console.error('No se pudo borrar el documento del cliente en Firestore:', error);
   }
 
-  // 2) Todo lo que cuelga del cliente en el estado compartido
+  // 2) Todo lo que cuelga del cliente (borrado en su colección propia)
+  const userReservations = state.reservations.filter(item => String(item.userId) === id);
+  const userPurchases = state.purchases.filter(item => String(item.userId) === id);
+  const userReservationHistory = state.reservationHistory.filter(item => String(item.userId) === id);
+  const userPurchaseHistory = state.purchaseHistory.filter(item => String(item.userId) === id);
+
   state.users = state.users.filter(item => String(item.id) !== id);
-  state.purchases = (state.purchases || []).filter(item => String(item.userId) !== id);
-  state.purchaseHistory = (state.purchaseHistory || []).filter(item => String(item.userId) !== id);
-  state.reservations = (state.reservations || []).filter(item => String(item.userId) !== id);
-  state.reservationHistory = (state.reservationHistory || []).filter(item => String(item.userId) !== id);
-  (state.activities || []).forEach(activity => {
-    if (!Array.isArray(activity.reservations)) return;
-    const before = activity.reservations.length;
-    activity.reservations = activity.reservations.filter(item => String(item.userId) !== id);
-    activity.booked = Math.max(0, (Number(activity.booked) || 0) - (before - activity.reservations.length));
-  });
+  state.purchases = state.purchases.filter(item => String(item.userId) !== id);
+  state.purchaseHistory = state.purchaseHistory.filter(item => String(item.userId) !== id);
+  state.reservations = state.reservations.filter(item => String(item.userId) !== id);
+  state.reservationHistory = state.reservationHistory.filter(item => String(item.userId) !== id);
 
   // 3) Lista de cuentas bloqueadas (la cuenta de Authentication sigue existiendo, pero ya no puede entrar)
   state.deletedUserIds = state.deletedUserIds || [];
@@ -560,7 +894,15 @@ async function deleteUserPermanently(userId) {
   if (typeof user.id === 'string') state.deletedUserIds.push(user.id);
   if (user.email) state.deletedUserEmails.push(user.email.toLowerCase());
 
-  await saveState();
+  // 4) Borrado aislado en Firestore (solo documentos del cliente)
+  await Promise.all([
+    deleteUserDocument(id),
+    ...userReservations.map(r => deleteReservationDocument(String(r.id))),
+    ...userPurchases.map(p => deletePurchaseDocument(String(p.id))),
+    ...userReservationHistory.map(r => deleteReservationDocument(String(r.id))),
+    ...userPurchaseHistory.map(h => deletePurchaseHistoryDocument(String(h.id)))
+  ]);
+  await saveRuntime();
   renderAll();
   if (firestoreDeleted) {
     toastSuccess(`${user.name} se ha eliminado por completo de MIFIT.`, { title: 'Cliente eliminado' });
@@ -579,7 +921,6 @@ async function toggleUserPremium(userId) {
   } catch (error) {
     console.error('No se pudo sincronizar el estado Premium:', error);
   }
-  await saveState();
   renderAdminPanels();
   renderAdminContent();
   renderProfile();
@@ -689,7 +1030,16 @@ async function archiveExpiredPurchases() {
     });
   });
   state.purchases = state.purchases.filter(purchase => !expired.includes(purchase));
-  await saveState();
+
+  // Persistencia aislada: histórico en su colección y baja de /purchases
+  await Promise.all(expired.map(purchase => addPurchaseHistoryDocument({
+    ...purchase,
+    event: 'expired',
+    archivedAt: now.toISOString(),
+    archivedBy: getCurrentUser()?.id || null
+  })));
+  await Promise.all(expired.map(purchase => deletePurchaseDocument(String(purchase.id))));
+
   renderAdminPanels();
   renderProfile();
   toastInfo(`${expired.length} bono${expired.length === 1 ? '' : 's'} caducado${expired.length === 1 ? '' : 's'} movido${expired.length === 1 ? '' : 's'} al histórico.`, { title: 'Bonos caducados' });
@@ -957,11 +1307,11 @@ function renderSelectedDay() {
   }).join('');
 
   container.querySelectorAll('[data-activity-id]').forEach(button => {
-    button.addEventListener('click', () => reserveActivity(Number(button.dataset.activityId)));
+    button.addEventListener('click', () => reserveActivity(String(button.dataset.activityId)));
   });
 }
 
-function reserveActivity(activityId) {
+async function reserveActivity(activityId) {
   const currentUser = getCurrentUser();
   if (!currentUser) {
     openLoginModal();
@@ -1009,10 +1359,11 @@ function reserveActivity(activityId) {
 
   const reservation = {
     id: Date.now(),
-    userId: currentUser.id,
-    activityId: activity.id,
     title: activity.title,
     date: activity.date,
+    userId: currentUser.id,
+    activityId: activity.id,
+    status: 'active',
     activityDate: activity.date,
     purchaseId: activeBonus?.id || null,
     sessionCharged: false, // Se marcará en true cuando el admin confirme asistencia y se descuente la sesión
@@ -1024,7 +1375,8 @@ function reserveActivity(activityId) {
   state.reservations.push(reservation);
   state.reservationHistory.push({ ...reservation, event: 'reserved' });
 
-  saveState();
+  // Solo se toca la colección /reservations del propio usuario.
+  await createReservationDocument(reservation);
   renderCalendar();
   renderSelectedDay();
   renderProfile();
@@ -1053,7 +1405,11 @@ async function cancelReservation(reservationId) {
   }
   state.reservations = state.reservations.filter(item => String(item.id) !== String(reservation.id));
   state.reservationHistory.push({ ...reservation, event: 'cancelled', cancelledAt: new Date().toISOString() });
-  await saveState();
+  // Escritura aislada: se devuelve la sesión al bono (si procede) y se borra la reserva.
+  if (reservation.sessionCharged && reservationPurchase?.billingType === 'sessions') {
+    await updatePurchaseDocument(String(reservationPurchase.id), { remainingSessions: reservationPurchase.remainingSessions });
+  }
+  await deleteReservationDocument(String(reservation.id));
   renderCalendar();
   renderSelectedDay();
   renderProfile();
@@ -1105,7 +1461,18 @@ async function toggleAttendance(activityId, userId, attended) {
     state.reservationHistory.push({ ...reservation, event: 'attendance_removed' });
   }
 
-  await saveState();
+  // Persistencia aislada: se actualiza la reserva y, si procede, el bono usado.
+  await updateReservationDocument(String(reservation.id), {
+    attendedAt: reservation.attendedAt || null,
+    sessionCharged: !!reservation.sessionCharged,
+    purchaseId: reservation.purchaseId || null
+  });
+  const bonusAfter = reservation.purchaseId
+    ? state.purchases.find(item => String(item.id) === String(reservation.purchaseId))
+    : null;
+  if (bonusAfter && typeof bonusAfter.remainingSessions === 'number') {
+    await updatePurchaseDocument(String(bonusAfter.id), { remainingSessions: bonusAfter.remainingSessions });
+  }
   renderAttendancePanel();
   document.querySelectorAll('.attendance-group').forEach(group => {
     if (openActivities.includes(group.dataset.activityId) || group.dataset.activityId === String(activityId)) {
@@ -1135,7 +1502,7 @@ async function cancelPurchase(purchaseId) {
   const confirmed = await showConfirm('¿Quieres cancelar esta solicitud?', { title: 'Cancelar solicitud', icon: '🧾', confirmText: 'Sí, cancelar' });
   if (!confirmed) return;
   state.purchases = state.purchases.filter(item => item.id !== purchase.id);
-  await saveState();
+  await deletePurchaseDocument(String(purchase.id));
   renderProfile();
   renderAdminPanels();
   toastInfo('Solicitud cancelada.');
@@ -1186,7 +1553,6 @@ async function handleProfileGoalsSubmit(event) {
   user.profileHistory = user.profileHistory || [];
   user.profileHistory.unshift({ ...user.profile, recordedAt: new Date().toISOString() });
   await db.collection('users').doc(user.id).set({ profile: user.profile, profileHistory: user.profileHistory }, { merge: true });
-  await saveState();
   renderProfileTracking(user);
   renderAdminPanels();
   toastSuccess('Datos de seguimiento guardados.');
@@ -1205,7 +1571,6 @@ function closeLoginModal() {
 function setCurrentUser(user) {
   state.currentUserId = user ? user.id : null;
   userRole = user ? user.role : 'cliente';
-  saveState();
   renderHeader();
   renderProfile();
   renderAdminPanels();
@@ -1290,7 +1655,10 @@ async function syncAuthenticatedUser(firebaseUser) {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
-  await saveState();
+  // Con sesión iniciada se refrescan las colecciones (el admin necesita
+  // listas completas y actuales de usuarios, compras y reservas).
+  if (role === 'admin') await ensureMigration();
+  await refreshFromCloud();
   renderAll();
 
   if (role === 'admin') {
@@ -1788,7 +2156,7 @@ function renderProfile() {
   });
 }
 
-function requestPurchase(serviceId) {
+async function requestPurchase(serviceId) {
   const user = getCurrentUser();
   if (!user) {
     openLoginModal();
@@ -1802,7 +2170,7 @@ function requestPurchase(serviceId) {
   const service = state.services.find(item => item.id === serviceId);
   if (!service) return;
 
-  state.purchases.push({
+  const purchase = {
     id: Date.now(),
     userId: user.id,
     serviceId: service.id,
@@ -1813,9 +2181,11 @@ function requestPurchase(serviceId) {
     billingType: service.billingType || 'sessions',
     sessions: Number(service.sessions) || 0,
     durationDays: Number(service.durationDays) || 0
-  });
+  };
+  state.purchases.push(purchase);
 
-  saveState();
+  // Solo se crea el documento del propio usuario en /purchases.
+  await createPurchaseDocument(purchase);
   renderProfile();
   renderAdminPanels();
   toastSuccess('Compra registrada. El administrador debe aprobarla desde su panel.');
@@ -1851,9 +2221,13 @@ function isAdmin() {
 }
 
 async function persistContent() {
-  await saveState();
+  const result = await saveSiteContent();
   renderCenterConfig();
   renderAdminPanels();
+  if (result !== 'ok') {
+    toastError('No se pudo guardar el contenido en la nube. Comprueba tu conexión a internet e inténtalo de nuevo.');
+  }
+  return result;
 }
 
 /* ==========================================================
@@ -1883,8 +2257,16 @@ function renderAdminPremium() {
   container.querySelectorAll('[data-delete-premium]').forEach(button => button.addEventListener('click', async () => {
     const confirmed = await showConfirm('¿Eliminar esta publicación Premium? Los clientes dejarán de verla.', { title: 'Eliminar contenido Premium', icon: '🗑️', confirmText: 'Eliminar' });
     if (!confirmed) return;
-    mfitData.premium = (mfitData.premium || []).filter(item => String(item.id) !== button.dataset.deletePremium);
-    await persistContent();
+    const removedId = button.dataset.deletePremium;
+    mfitData.premium = (mfitData.premium || []).filter(item => String(item.id) !== String(removedId));
+    const result = await removePremiumPost(removedId);
+    if (result !== 'ok') {
+      // Si no se confirmó la eliminación en la nube, volvemos a la última versión real.
+      await refreshFromCloud();
+      renderAdminPanels();
+      renderProfile();
+      return;
+    }
     renderProfile();
     toastInfo('Contenido Premium eliminado.');
   }));
@@ -1939,7 +2321,16 @@ async function handleAdminPremiumSubmit(event) {
     return;
   }
   const audience = wantsClient && clientSel ? clientSel.value : 'all';
-  mfitData.premium.unshift({
+
+  // Parte de la última versión guardada en la nube para no pisar contenido
+  // publicado desde otra pestaña o dispositivo mientras teníamos la app abierta.
+  await refreshFromCloud();
+  if (state.loadFailed) {
+    toastError('No se puede publicar porque no se pudieron cargar los datos de la nube. Refresca la página e inténtalo de nuevo.');
+    return;
+  }
+
+  const newItem = {
     id: Date.now(),
     type,
     title,
@@ -1947,9 +2338,21 @@ async function handleAdminPremiumSubmit(event) {
     imageUrl: imageUrl || null,
     audience,
     date: new Date().toISOString().slice(0, 10)
-  });
-  await persistContent();
-  document.getElementById('admin-premium-form').reset();
+  };
+  mfitData.premium = mfitData.premium || [];
+  mfitData.premium.unshift(newItem);
+
+  const result = await addPremiumPost(newItem);
+  if (result !== 'ok') {
+    // El anuncio NO se guardó: lo quitamos de la vista local y dejamos el
+    // texto en el formulario para que puedas reintentarlo sin reescribirlo.
+    mfitData.premium = (mfitData.premium || []).filter(item => String(item.id) !== String(newItem.id));
+    renderAdminPanels();
+    renderProfile();
+    toastWarning('No se pudo publicar. Tu anuncio sigue escrito en el formulario; revisa tu conexión y pulsa "Publicar" de nuevo.', { title: 'No publicado', duration: 7000 });
+    return;
+  }
+  form.reset();
   const preview = document.getElementById('premium-image-preview');
   if (preview) {
     preview.style.display = 'none';
@@ -1975,11 +2378,13 @@ function renderAdminContent() {
     consultasContainer.querySelectorAll('[data-read-consulta]').forEach(button => button.addEventListener('click', async () => {
       const item = mfitData.consultas.find(consulta => String(consulta.id) === button.dataset.readConsulta);
       if (item) item.estado = 'leída';
-      await persistContent();
+      await updateConsultaDocument(String(item.id), { estado: item.estado });
+      renderAdminContent();
     }));
     consultasContainer.querySelectorAll('[data-delete-consulta]').forEach(button => button.addEventListener('click', async () => {
       mfitData.consultas = mfitData.consultas.filter(item => String(item.id) !== button.dataset.deleteConsulta);
-      await persistContent();
+      await deleteConsultaDocument(String(button.dataset.deleteConsulta));
+      renderAdminContent();
     }));
   }
   const info = mfitData.info;
@@ -2029,7 +2434,7 @@ function renderAdminContent() {
 
   document.querySelectorAll('[data-delete-activity]').forEach(button => button.addEventListener('click', () => {
     state.activities = state.activities.filter(item => String(item.id) !== button.dataset.deleteActivity);
-    persistContent();
+    deleteActivityDocument(button.dataset.deleteActivity);
     renderCalendar();
     renderSelectedDay();
   }));
@@ -2144,7 +2549,7 @@ function loadHomeFormData() {
   document.getElementById('home-cta-button').value = homeData.ctaButton || 'Únete ahora';
 }
 
-function handleAdminActivitySubmit(event) {
+async function handleAdminActivitySubmit(event) {
   event.preventDefault();
   const date = document.getElementById('activity-date').value;
   const time = document.getElementById('activity-time').value;
@@ -2186,7 +2591,9 @@ function handleAdminActivitySubmit(event) {
       reservations: []
     });
   });
-  saveState();
+  // Persistencia aislada: cada actividad se guarda en /activities.
+  const createdActivities = state.activities.slice(-dates.length);
+  await Promise.all(createdActivities.map(activity => createActivityDocument(activity)));
   event.target.reset();
   renderCalendar();
   renderSelectedDay();
@@ -2389,7 +2796,16 @@ function renderAdminPanels() {
           purchase.expiresAt = expiresAt.toISOString();
         }
         state.purchaseHistory.push({ ...purchase, event: 'approved', archivedAt: new Date().toISOString() });
-        saveState();
+        // Persistencia aislada: se aprueba la compra del cliente y se archiva en su colección.
+        updatePurchaseDocument(String(purchase.id), {
+          status: purchase.status,
+          approvedAt: purchase.approvedAt,
+          approvedBy: purchase.approvedBy,
+          activatedAt: purchase.activatedAt,
+          remainingSessions: purchase.remainingSessions,
+          expiresAt: purchase.expiresAt
+        });
+        addPurchaseHistoryDocument({ ...purchase, event: 'approved', archivedAt: new Date().toISOString() });
         renderAdminPanels();
         renderProfile();
       }
@@ -2404,7 +2820,9 @@ function renderAdminPanels() {
       if (!confirmed) return;
       state.purchases = state.purchases.filter(item => item !== purchase);
       state.purchaseHistory.push({ ...purchase, event: 'removed_from_active', removedAt: new Date().toISOString(), removedBy: getCurrentUser()?.id || null });
-      await saveState();
+      // Escritura aislada: se retira el bono y se conserva en el histórico.
+      deletePurchaseDocument(String(purchase.id));
+      addPurchaseHistoryDocument({ ...purchase, event: 'removed_from_active', removedAt: new Date().toISOString(), removedBy: getCurrentUser()?.id || null });
       renderAdminPanels();
       renderProfile();
       toastInfo('Bono retirado del listado activo.');
@@ -2416,7 +2834,7 @@ function renderAdminPanels() {
       const confirmed = await showConfirm('¿Eliminar físicamente esta transacción del histórico?', { title: 'Eliminar transacción', icon: '🗑️', confirmText: 'Eliminar' });
       if (!confirmed) return;
       state.purchaseHistory = state.purchaseHistory.filter(item => String(item.id) !== button.dataset.deleteHistory);
-      await saveState();
+      await deletePurchaseHistoryDocument(String(button.dataset.deleteHistory));
       renderAdminPanels();
       toastInfo('Transacción eliminada del histórico.');
     });
@@ -2426,7 +2844,7 @@ function renderAdminPanels() {
     button.addEventListener('click', () => {
       const id = Number(button.dataset.deleteService);
       state.services = state.services.filter(item => item.id !== id);
-      saveState();
+      saveSiteContent();
       renderAdminPanels();
       renderBonosList();
       renderProfile();
@@ -2498,7 +2916,7 @@ function handleAdminServiceSubmit(event) {
     description: linkedActivity ? `Válido solo para ${linkedActivity}` : `${type} disponible en MIFIT`,
     active: true
   });
-  saveState();
+  saveSiteContent();
   document.getElementById('admin-service-form').reset();
   renderAdminPanels();
   renderBonosList();
@@ -2535,7 +2953,6 @@ async function handleAdminUserSubmit(event) {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    await saveState();
     await secondaryAuth.signOut();
     document.getElementById('admin-user-form').reset();
     renderAdminPanels();
@@ -2561,7 +2978,7 @@ async function handleEditActivitySubmit(event) {
   activity.capacity = Number(document.getElementById('edit-activity-capacity').value);
   activity.description = document.getElementById('edit-activity-description').value.trim();
 
-  await saveState();
+  await updateActivityDocument(String(activity.id), activity);
   document.getElementById('edit-activity-modal').classList.add('hidden');
   renderCalendar();
   renderSelectedDay();
@@ -2604,7 +3021,7 @@ async function handleEditServiceSubmit(event) {
       bonusService.type = document.getElementById('edit-service-type').value.trim();
       bonusService.description = document.getElementById('edit-service-description').value.trim();
 
-      await saveState();
+      await saveSiteContent();
       modal.classList.add('hidden');
       renderAdminPanels();
       renderBonosList();
@@ -2634,14 +3051,13 @@ async function handleEditUserSubmit(event) {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
-  await saveState();
   document.getElementById('edit-user-modal').classList.add('hidden');
   renderAdminPanels();
   renderHeader();
   toastSuccess('Usuario actualizado correctamente.');
 }
 
-function handleContactFormSubmit(event) {
+async function handleContactFormSubmit(event) {
   event.preventDefault();
   const nombre = document.getElementById('contact-nombre').value.trim();
   const contacto = document.getElementById('contact-email').value.trim();
@@ -2663,15 +3079,24 @@ function handleContactFormSubmit(event) {
     return;
   }
 
-  mfitData.consultas.unshift({
+  const consulta = {
     id: Date.now(),
     nombre,
     email: contacto,
     mensaje,
     fecha: new Date().toISOString().slice(0, 16).replace('T', ' '),
     estado: 'nueva'
-  });
-  saveState();
+  };
+  mfitData.consultas.unshift(consulta);
+  const saved = await createConsultaDocument(consulta);
+
+  if (saved !== 'ok') {
+    // No se guardó: quitamos la consulta local para no duplicarla si se reenvía.
+    mfitData.consultas = (mfitData.consultas || []).filter(item => String(item.id) !== String(consulta.id));
+    feedback.textContent = 'No se pudo enviar el mensaje. Comprueba tu conexión e inténtalo de nuevo.';
+    feedback.classList.add('error');
+    return;
+  }
 
   feedback.textContent = 'Mensaje enviado correctamente.';
   feedback.classList.add('success');
