@@ -1299,7 +1299,7 @@ input[type="password"]::-ms-clear {
 }
 
 .admin-context-tools {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -1310,6 +1310,10 @@ input[type="password"]::-ms-clear {
   background: var(--mfit-rojo-claro);
   color: var(--mfit-rojo-oscuro);
   font-size: 0.78rem;
+}
+
+.admin-context-tools.is-admin-visible {
+  display: flex;
 }
 
 .admin-intro {

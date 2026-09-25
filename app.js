@@ -1680,7 +1680,9 @@ function renderHeader() {
   const profileNav = document.getElementById('profile-nav-item');
 
   document.querySelectorAll('[data-admin-only]').forEach(item => {
-    item.style.display = isAdmin() ? 'flex' : 'none';
+    const visible = isAdmin();
+    item.classList.toggle('is-admin-visible', visible);
+    item.removeAttribute('style');
   });
   if (contactTab) contactTab.style.display = isAdmin() ? 'none' : 'inline-block';
   if (contactForm) contactForm.style.display = isAdmin() ? 'none' : 'block';
@@ -3429,6 +3431,7 @@ async function handleImageManagerUpload() {
 }
 
 function renderAll() {
+  document.querySelectorAll('[data-admin-only]').forEach(item => item.classList.remove('is-admin-visible'));
   renderYearOptions();
   renderCalendar();
   renderSelectedDay();

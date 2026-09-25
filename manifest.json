@@ -4,19 +4,19 @@
   "description": "Aplicación de entrenamiento y seguimiento de actividad física.",
   "icons": [
     {
-      "src": "MIFIT.png",
+      "src": "MIFITapp.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "MIFIT.png",
+      "src": "MIFITapp.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "MIFIT.png",
+      "src": "MIFITapp.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
