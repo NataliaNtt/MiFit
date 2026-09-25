@@ -3,15 +3,16 @@
 
 <head>
   <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">  <title>MIFIT App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>MIFIT App</title>
   <!-- Enlace al archivo Manifest -->
-<link rel="manifest" href="manifest.json">
-<!-- Iconos de inicio de pantalla, optimizados para Android e iOS -->
-<link rel="icon" type="image/png" sizes="192x192" href="MIFIT.png">
-<link rel="icon" type="image/png" sizes="512x512" href="MIFIT.png">
-<link rel="apple-touch-icon" sizes="180x180" href="MIFITapp.png">
-<link rel="apple-touch-icon" sizes="192x192" href="MIFITapp.png">
-<link rel="apple-touch-icon" sizes="512x512" href="MIFITapp.png">
+  <link rel="manifest" href="manifest.json">
+  <!-- Iconos de inicio de pantalla, optimizados para Android e iOS -->
+  <link rel="icon" type="image/png" sizes="192x192" href="MIFIT.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="MIFIT.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="MIFITapp.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="MIFITapp.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="MIFITapp.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
@@ -31,7 +32,8 @@
 
     <!-- Acciones del usuario a la derecha -->
     <div class="header-actions">
-      <button type="button" class="btn premium-cta-btn" id="header-premium-btn" title="Zona Premium MIFIT">Premium</button>
+      <button type="button" class="btn premium-cta-btn" id="header-premium-btn"
+        title="Zona Premium MIFIT">Premium</button>
       <span class="user-badge" id="user-role-badge">Invitado</span>
       <button class="btn btn-light btn-sm" id="login-toggle-btn">Iniciar sesión</button>
       <button class="btn btn-light btn-sm" id="register-toggle-btn">Registrarse</button>
@@ -46,12 +48,16 @@
         <div class="landing-copy">
           <span class="label-badge">MIFIT · Entrena diferente</span>
           <h1 id="home-title-display">Tu mejor versión empieza hoy.</h1>
-          <p id="home-subtitle-display">Entrenamiento funcional, readaptación y acompañamiento real en un espacio diseñado para avanzar.</p>
+          <p id="home-subtitle-display">Entrenamiento funcional, readaptación y acompañamiento real en un espacio
+            diseñado para avanzar.</p>
           <div class="landing-actions">
-            <button type="button" class="btn btn-primary" id="home-cta1-display" data-go-view="view-calendario">Ver calendario</button>
-            <button type="button" class="btn btn-light" id="home-cta2-display" data-go-view="view-centro">Conocer MIFIT</button>
+            <button type="button" class="btn btn-primary" id="home-cta1-display" data-go-view="view-calendario">Ver
+              calendario</button>
+            <button type="button" class="btn btn-light" id="home-cta2-display" data-go-view="view-centro">Conocer
+              MIFIT</button>
           </div>
-          <div class="landing-proof" id="home-proof-display"><strong>Grupos reducidos</strong><span>·</span><strong>Coaching
+          <div class="landing-proof" id="home-proof-display"><strong>Grupos
+              reducidos</strong><span>·</span><strong>Coaching
               experto</strong><span>·</span><strong>Progreso medible</strong></div>
         </div>
         <div class="landing-mark" aria-hidden="true"><span class="landing-mark-ring"></span><img src="MIFIT.png"
@@ -125,23 +131,32 @@
     </section>
     <section id="view-centro" class="view">
       <div class="center-subnav-wrap">
-      <button type="button" class="subnav-arrow" data-subnav-scroll="left" aria-label="Desplazar el menú a la izquierda">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-      </button>
-      <div class="center-subnav">
-        <button class="subnav-btn active" data-tab="info">Info</button>
-        <button class="subnav-btn" data-tab="servicios">Servicios</button>
-        <button class="subnav-btn" data-tab="equipo">Equipo</button>
-        <button class="subnav-btn" data-tab="galeria">Galería</button>
-        <button class="subnav-btn" data-tab="novedades">Novedades</button>
-        <button class="subnav-btn" data-tab="contacto">Contacto</button>
-        <button class="subnav-btn admin-only-tab" data-tab="clientes" style="display:none;">Clientes</button>
-        <button class="subnav-btn admin-only-tab premium-tab-btn" data-tab="premium" style="display:none;">Premium</button>
-        <button class="subnav-btn admin-only-tab" data-tab="admin" style="display:none;">Admin</button>
-      </div>
-      <button type="button" class="subnav-arrow" data-subnav-scroll="right" aria-label="Desplazar el menú a la derecha">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
+        <button type="button" class="subnav-arrow" data-subnav-scroll="left"
+          aria-label="Desplazar el menú a la izquierda">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+        <div class="center-subnav">
+          <button class="subnav-btn active" data-tab="info">Info</button>
+          <button class="subnav-btn" data-tab="servicios">Servicios</button>
+          <button class="subnav-btn" data-tab="equipo">Equipo</button>
+          <button class="subnav-btn" data-tab="galeria">Galería</button>
+          <button class="subnav-btn" data-tab="novedades">Novedades</button>
+          <button class="subnav-btn" data-tab="contacto">Contacto</button>
+          <button class="subnav-btn admin-only-tab" data-tab="clientes" style="display:none;">Clientes</button>
+          <button class="subnav-btn admin-only-tab premium-tab-btn" data-tab="premium"
+            style="display:none;">Premium</button>
+          <button class="subnav-btn admin-only-tab" data-tab="admin" style="display:none;">Admin</button>
+        </div>
+        <button type="button" class="subnav-arrow" data-subnav-scroll="right"
+          aria-label="Desplazar el menú a la derecha">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
 
       <div id="tab-info" class="center-tab active">
@@ -169,6 +184,29 @@
             <a id="btn-call" href="#" class="btn btn-primary">📞 Llamar</a>
             <a id="btn-whatsapp" href="#" target="_blank" class="btn btn-success">💬 WhatsApp</a>
           </div>
+        </div>
+
+        <div class="card-section">
+          <h3>Esencia y metodología</h3>
+          <p id="center-methodology"></p>
+          <div class="methodology-pills">
+            <span class="methodology-pill">💪 Fuerza global y específica</span>
+            <span class="methodology-pill">🔥 HIIT cardiovascular</span>
+            <span class="methodology-pill">⚖️ Estabilidad lumbo-pélvica (CORE)</span>
+            <span class="methodology-pill">⏱️ Sesiones de 50 minutos</span>
+            <span class="methodology-pill">🔄 10 min de transición</span>
+          </div>
+        </div>
+
+        <div class="card-section">
+          <h3>Horarios y grupos</h3>
+          <p id="center-schedule"></p>
+          <div class="schedule-days" id="center-schedule-days"></div>
+        </div>
+
+        <div class="card-section">
+          <h3>Normas de funcionamiento</h3>
+          <div id="center-rules" class="rules-list"></div>
         </div>
       </div>
 
@@ -310,7 +348,8 @@
               <div class="form-group hidden" id="premium-client-group">
                 <label>Cliente destinatario</label>
                 <select id="premium-client" class="form-control"></select>
-                <small class="admin-help">Solo ese cliente verá esta publicación. Ningún otro usuario tendrá acceso.</small>
+                <small class="admin-help">Solo ese cliente verá esta publicación. Ningún otro usuario tendrá
+                  acceso.</small>
               </div>
               <div class="form-group">
                 <label>Foto (opcional)</label>
@@ -331,19 +370,25 @@
 
           <div id="admin-purchases-section" class="admin-section">
             <details class="admin-collapsible" open>
-              <summary><h3>Compras pendientes</h3></summary>
+              <summary>
+                <h3>Compras pendientes</h3>
+              </summary>
               <p class="admin-help">Revisa las solicitudes de bonos y aprueba las que ya estén confirmadas.</p>
               <div id="admin-purchases" class="admin-list"></div>
             </details>
             <details class="admin-collapsible">
-              <summary><h3>Bonos activos</h3></summary>
+              <summary>
+                <h3>Bonos activos</h3>
+              </summary>
               <div id="admin-active-purchases" class="admin-list"></div>
             </details>
           </div>
 
           <div id="admin-history-section" class="admin-section">
             <details class="admin-collapsible">
-              <summary><h3>Histórico de transacciones</h3></summary>
+              <summary>
+                <h3>Histórico de transacciones</h3>
+              </summary>
               <p class="admin-help">Registro de bonos aprobados y operaciones conservado en Firebase.</p>
               <div id="admin-purchase-history" class="admin-list"></div>
             </details>
@@ -351,8 +396,11 @@
 
           <div id="admin-attendance-section" class="admin-section">
             <details class="admin-collapsible">
-              <summary><h3>Control de asistencia</h3></summary>
-              <p class="admin-help">Confirma quién ha asistido a cada clase. La asistencia queda registrada y actualiza el
+              <summary>
+                <h3>Control de asistencia</h3>
+              </summary>
+              <p class="admin-help">Confirma quién ha asistido a cada clase. La asistencia queda registrada y actualiza
+                el
                 bono del cliente.</p>
               <div id="admin-attendance" class="admin-list"></div>
             </details>
@@ -361,7 +409,9 @@
 
           <div id="admin-contact-section" class="admin-section">
             <details class="admin-collapsible">
-              <summary><h3>Mensajes de contacto</h3></summary>
+              <summary>
+                <h3>Mensajes de contacto</h3>
+              </summary>
               <p class="admin-help">Aquí aparecen los mensajes enviados por clientes o visitantes desde la pestaña
                 Contacto.</p>
               <div id="admin-consultas" class="admin-list"></div>
@@ -370,7 +420,9 @@
 
           <div id="admin-info-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible">
-              <summary><h3>Contenido del centro</h3></summary>
+              <summary>
+                <h3>Contenido del centro</h3>
+              </summary>
               <p class="admin-help">Edita el nombre, descripción, contacto y foto principal que aparecen en la sección
                 Info.</p>
               <form id="admin-info-form" class="stack-form">
@@ -382,6 +434,30 @@
                 <div class="form-group"><label>Teléfono</label><input type="text" id="info-phone" required /></div>
                 <div class="form-group"><label>WhatsApp</label><input type="text" id="info-whatsapp" required /></div>
                 <div class="form-group"><label>Email</label><input type="email" id="info-email" required /></div>
+
+                <div class="form-group"><label>Metodología (texto de la sección Info)</label>
+                  <textarea id="info-methodology" rows="3"></textarea>
+                </div>
+                <div class="form-group"><label>Horarios y grupos (texto)</label>
+                  <textarea id="info-schedule-text" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Duración de la sesión (minutos)</label>
+                  <input type="number" id="info-session-duration" min="10" max="180" step="5" />
+                </div>
+                <div class="form-group">
+                  <label>Transición entre clases (minutos)</label>
+                  <input type="number" id="info-transition-minutes" min="0" max="60" step="5" />
+                </div>
+
+                <div class="form-group">
+                  <label>Normas de funcionamiento</label>
+                  <p class="admin-help">Añade, edita o elimina las normas que se muestran en la sección Info del centro.
+                  </p>
+                  <div id="info-rules-editor" class="rules-editor"></div>
+                  <button type="button" class="btn btn-secondary btn-sm" id="info-rules-add">Añadir norma</button>
+                </div>
+
                 <div class="form-group"><label>Imagen principal (URL o archivo)</label><input type="url"
                     id="info-hero-image" /><input type="file" id="info-hero-file" accept="image/*" /></div>
                 <button type="submit" class="btn btn-primary">Guardar contenido</button>
@@ -391,22 +467,38 @@
 
           <div id="admin-home-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible">
-              <summary><h3>Gestión de página de inicio</h3></summary>
-              <p class="admin-help">Edita los textos, banners y secciones principales de la página de inicio dinámicamente.</p>
+              <summary>
+                <h3>Gestión de página de inicio</h3>
+              </summary>
+              <p class="admin-help">Edita los textos, banners y secciones principales de la página de inicio
+                dinámicamente.</p>
               <form id="admin-home-form" class="stack-form">
-                <div class="form-group"><label>Título principal</label><input type="text" id="home-title" required /></div>
-                <div class="form-group"><label>Subtítulo</label><textarea id="home-subtitle" rows="2" required></textarea></div>
-                <div class="form-group"><label>Texto del botón CTA 1</label><input type="text" id="home-cta1" required /></div>
-                <div class="form-group"><label>Texto del botón CTA 2</label><input type="text" id="home-cta2" required /></div>
-                <div class="form-group"><label>Texto de prueba social</label><input type="text" id="home-proof" required /></div>
-                <div class="form-group"><label>Valor 1 - Título</label><input type="text" id="home-value1-title" required /></div>
-                <div class="form-group"><label>Valor 1 - Descripción</label><textarea id="home-value1-desc" rows="2" required></textarea></div>
-                <div class="form-group"><label>Valor 2 - Título</label><input type="text" id="home-value2-title" required /></div>
-                <div class="form-group"><label>Valor 2 - Descripción</label><textarea id="home-value2-desc" rows="2" required></textarea></div>
-                <div class="form-group"><label>Valor 3 - Título</label><input type="text" id="home-value3-title" required /></div>
-                <div class="form-group"><label>Valor 3 - Descripción</label><textarea id="home-value3-desc" rows="2" required></textarea></div>
-                <div class="form-group"><label>Texto CTA sección inferior</label><input type="text" id="home-cta-title" required /></div>
-                <div class="form-group"><label>Texto botón CTA inferior</label><input type="text" id="home-cta-button" required /></div>
+                <div class="form-group"><label>Título principal</label><input type="text" id="home-title" required />
+                </div>
+                <div class="form-group"><label>Subtítulo</label><textarea id="home-subtitle" rows="2"
+                    required></textarea></div>
+                <div class="form-group"><label>Texto del botón CTA 1</label><input type="text" id="home-cta1"
+                    required /></div>
+                <div class="form-group"><label>Texto del botón CTA 2</label><input type="text" id="home-cta2"
+                    required /></div>
+                <div class="form-group"><label>Texto de prueba social</label><input type="text" id="home-proof"
+                    required /></div>
+                <div class="form-group"><label>Valor 1 - Título</label><input type="text" id="home-value1-title"
+                    required /></div>
+                <div class="form-group"><label>Valor 1 - Descripción</label><textarea id="home-value1-desc" rows="2"
+                    required></textarea></div>
+                <div class="form-group"><label>Valor 2 - Título</label><input type="text" id="home-value2-title"
+                    required /></div>
+                <div class="form-group"><label>Valor 2 - Descripción</label><textarea id="home-value2-desc" rows="2"
+                    required></textarea></div>
+                <div class="form-group"><label>Valor 3 - Título</label><input type="text" id="home-value3-title"
+                    required /></div>
+                <div class="form-group"><label>Valor 3 - Descripción</label><textarea id="home-value3-desc" rows="2"
+                    required></textarea></div>
+                <div class="form-group"><label>Texto CTA sección inferior</label><input type="text" id="home-cta-title"
+                    required /></div>
+                <div class="form-group"><label>Texto botón CTA inferior</label><input type="text" id="home-cta-button"
+                    required /></div>
                 <button type="submit" class="btn btn-primary">Guardar cambios de inicio</button>
               </form>
             </details>
@@ -414,8 +506,11 @@
 
           <div id="admin-activities-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible">
-              <summary><h3>Actividades del calendario</h3></summary>
-              <p class="admin-help">Crea las clases que aparecerán en el calendario para que los clientes puedan reservar
+              <summary>
+                <h3>Actividades del calendario</h3>
+              </summary>
+              <p class="admin-help">Crea las clases que aparecerán en el calendario para que los clientes puedan
+                reservar
                 plaza.</p>
               <form id="admin-activity-form" class="stack-form">
                 <div class="form-group"><label>Actividad</label><input type="text" id="activity-title" required /></div>
@@ -434,20 +529,24 @@
                     <div class="weekday-picker">
                       <label><input type="checkbox" name="recurrence-day" value="1" /> Lu</label><label><input
                           type="checkbox" name="recurrence-day" value="2" /> Ma</label><label><input type="checkbox"
-                          name="recurrence-day" value="3" /> Mi</label><label><input type="checkbox" name="recurrence-day"
-                          value="4" /> Ju</label><label><input type="checkbox" name="recurrence-day" value="5" />
-                        Vi</label><label><input type="checkbox" name="recurrence-day" value="6" /> Sa</label><label><input type="checkbox" name="recurrence-day" value="0" /> Do</label>
+                          name="recurrence-day" value="3" /> Mi</label><label><input type="checkbox"
+                          name="recurrence-day" value="4" /> Ju</label><label><input type="checkbox"
+                          name="recurrence-day" value="5" />
+                        Vi</label><label><input type="checkbox" name="recurrence-day" value="6" />
+                        Sa</label><label><input type="checkbox" name="recurrence-day" value="0" /> Do</label>
                     </div>
                   </div>
                   <div class="form-group"><label for="activity-weeks">Durante</label><input type="number"
                       id="activity-weeks" min="1" max="52" value="4" /><span class="field-suffix">semanas</span></div>
                 </div>
-                <div class="form-group"><label>Entrenador</label><input type="text" id="activity-coach" required /></div>
+                <div class="form-group"><label>Entrenador</label><input type="text" id="activity-coach" required />
+                </div>
                 <div class="form-group"><label>Duración (minutos)</label><input type="number" id="activity-duration"
                     min="1" value="45" required /></div>
                 <div class="form-group"><label>Plazas</label><input type="number" id="activity-capacity" min="1"
                     value="12" required /></div>
-                <div class="form-group"><label>Descripción</label><input type="text" id="activity-description" required />
+                <div class="form-group"><label>Descripción</label><input type="text" id="activity-description"
+                    required />
                 </div>
                 <button type="submit" class="btn btn-primary">Añadir actividad</button>
               </form>
@@ -457,10 +556,13 @@
 
           <div id="admin-center-services-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible">
-              <summary><h3>Servicios del centro</h3></summary>
+              <summary>
+                <h3>Servicios del centro</h3>
+              </summary>
               <p class="admin-help">Añade los servicios que se muestran en la pestaña Servicios del centro.</p>
               <form id="admin-center-service-form" class="stack-form">
-                <div class="form-group"><label>Nombre</label><input type="text" id="center-service-name" required /></div>
+                <div class="form-group"><label>Nombre</label><input type="text" id="center-service-name" required />
+                </div>
                 <div class="form-group"><label>Descripción</label><textarea id="center-service-desc" rows="2"
                     required></textarea></div>
                 <div class="form-group"><label>Imagen (URL o archivo)</label><input type="url"
@@ -473,7 +575,9 @@
 
           <div id="admin-team-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible">
-              <summary><h3>Equipo</h3></summary>
+              <summary>
+                <h3>Equipo</h3>
+              </summary>
               <p class="admin-help">Presenta a entrenadores y profesionales con su foto, cargo y especialidad.</p>
               <form id="admin-team-form" class="stack-form">
                 <div class="form-group"><label>Nombre</label><input type="text" id="team-name" required /></div>
@@ -490,14 +594,17 @@
 
           <div id="admin-gallery-news-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible">
-              <summary><h3>Galería y novedades</h3></summary>
+              <summary>
+                <h3>Galería y novedades</h3>
+              </summary>
               <p class="admin-help">Publica fotos y avisos para mantener actualizada la información del centro.</p>
               <form id="admin-gallery-form" class="stack-form">
                 <div class="form-group"><label>Foto de galería (URL o archivo)</label>
                   <input type="file" id="gallery-file" accept="image/jpeg, image/png, image/webp" />
-                <div class="form-group"><label>Texto de la foto</label><input type="text" id="gallery-caption" required />
-                </div>
-                <button type="submit" class="btn btn-primary">Añadir foto</button>
+                  <div class="form-group"><label>Texto de la foto</label><input type="text" id="gallery-caption"
+                      required />
+                  </div>
+                  <button type="submit" class="btn btn-primary">Añadir foto</button>
               </form>
               <!-- Formulario de Novedades (Simplificado sin imágenes) -->
               <form id="admin-news-form" class="stack-form admin-subform">
@@ -517,7 +624,9 @@
 
           <div id="admin-images-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible">
-              <summary><h3>Gestor de imágenes</h3></summary>
+              <summary>
+                <h3>Gestor de imágenes</h3>
+              </summary>
               <p class="admin-help">Sube o reemplaza imágenes (.jpg, .png, .webp) de cualquier sección. Se guardan
                 optimizadas en Firebase Storage y su URL queda asociada al elemento correspondiente.</p>
               <div class="form-group">
@@ -540,7 +649,9 @@
           <!-- FORMULARIO DE BONOS (Sustituye la parte cortada o añádelo en la pestaña admin) -->
           <div id="admin-services-section" class="admin-section admin-editor-section">
             <details class="admin-collapsible" open>
-              <summary><h3>Gestionar Bonos y Tarifas</h3></summary>
+              <summary>
+                <h3>Gestionar Bonos y Tarifas</h3>
+              </summary>
               <p class="admin-help">Crea bonos generales o vincúlalos a clases concretas.</p>
               <form id="admin-service-form" class="stack-form">
                 <div class="form-group"><label>Nombre</label><input type="text" id="service-name" required /></div>
@@ -566,10 +677,10 @@
                     <option value="time">Por tiempo (ilimitado)</option>
                   </select>
                 </div>
-                <div class="form-group" id="service-sessions-field"><label>Número de sesiones</label><input type="number"
-                    id="service-sessions" value="10" /></div>
-                <div class="form-group hidden" id="service-days-field"><label>Duración (días)</label><input type="number"
-                    id="service-duration-days" value="30" /></div>
+                <div class="form-group" id="service-sessions-field"><label>Número de sesiones</label><input
+                    type="number" id="service-sessions" value="10" /></div>
+                <div class="form-group hidden" id="service-days-field"><label>Duración (días)</label><input
+                    type="number" id="service-duration-days" value="30" /></div>
                 <button type="submit" class="btn btn-primary">Crear bono</button>
               </form>
               <div id="admin-services" class="admin-list"></div>
@@ -584,7 +695,8 @@
     <section id="view-premium" class="view premium-view">
       <div class="premium-shell">
         <header class="premium-hero">
-          <button type="button" class="premium-back-btn" id="premium-back-btn" aria-label="Volver a inicio">← Volver</button>
+          <button type="button" class="premium-back-btn" id="premium-back-btn" aria-label="Volver a inicio">←
+            Volver</button>
           <span class="premium-hero-pill">★ Zona exclusiva</span>
           <h1 class="premium-hero-title">Tablón Premium</h1>
           <p class="premium-hero-sub">Contenido exclusivo reservado para clientes Premium de MIFIT.</p>
@@ -794,6 +906,10 @@
         <div class="form-group">
           <label>Tipo</label>
           <input type="text" id="edit-service-type" required />
+        </div>
+        <div class="form-group" id="edit-service-price-field">
+          <label>Precio (€)</label>
+          <input type="number" id="edit-service-price" step="0.01" min="0" />
         </div>
         <div class="form-group">
           <label>Descripción</label>

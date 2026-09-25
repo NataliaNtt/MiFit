@@ -133,22 +133,38 @@ function showConfirm(message, options = {}) {
 }
 
 
+const defaultCenterInfo = {
+  name: 'MiFit Centro de Entrenamiento',
+  description: 'Entrenamiento personal y funcional adaptado a tus objetivos: perder peso, tonificar, ganar masa muscular y readaptación de lesiones. Cada sesión se supervisa de forma personalizada por entrenadores.',
+  address: 'Calle Mayor nº 166, El Raal, Murcia',
+  phone: '613132515',
+  whatsapp: '34613132515',
+  methodology: 'Combinamos fuerza global y específica, HIIT cardiovascular y trabajo de estabilidad lumbo-pélvica (CORE).',
+  sessionDuration: 50,
+  transitionMinutes: 10,
+  email: 'contacto@mfit.es',
+  heroImage: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80',
+  scheduleText: 'Lunes a viernes en mañanas y tardes. Sábados opcionales según grupos.',
+  rules: [
+    { title: 'Reserva de plaza', text: 'Las plazas se reservan desde la app o en recepción. La reserva queda confirmada cuando aparece en tu perfil.' },
+    { title: 'Sesiones de 50 minutos', text: 'Cada sesión dura 50 minutos y se respeta un intervalo de 10 minutos de transición entre clases para la limpieza y preparación de la sala.' },
+    { title: 'Puntualidad', text: 'Te pedimos llegar 5 minutos antes para el calentamiento. La clase comienza a la hora exacta y no se amplían por retraso.' },
+    { title: 'Material', text: 'Trae ropa deportiva cómoda y toalla. El material de fuerza y las esterillas están disponibles en el centro.' },
+    { title: 'Aviso de ausencia', text: 'Avisa con al menos 2 horas de antelación si no puedes asistir para liberar tu plaza.' },
+    { title: 'Bajas y lesiones', text: 'Comunica cualquier lesión o molestia antes de entrenar. El entrenador adaptará la sesión a tu situación.' },
+    { title: 'Edad mínima', text: 'Training Kids está dirigido a menores de 8 a 13 años, siempre con acompañamiento del responsable.' },
+    { title: 'Zona de descanso', text: 'Mantén las zonas de paso, duchas y vestuarios limpios y respeta el material común.' }
+  ]
+};
+
 const mfitData = {
-  info: {
-    name: 'MIFIT',
-    description: 'Centro de entrenamiento funcional avanzado y readaptación física en Murcia.',
-    address: 'Calle Mayor nº 166 Bajo, El Raal, Murcia',
-    phone: '613132515',
-    whatsapp: '34613132515',
-    landingTitle: 'Tu mejor versión empieza hoy.',
-    landingSubtitle: 'Entrenamiento funcional, readaptación y acompañamiento real en un espacio diseñado para avanzar.',
-    email: 'contacto@mfit.es',
-    heroImage: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80'
-  },
+  info: JSON.parse(JSON.stringify(defaultCenterInfo)),
   services: [
-    { id: 1, name: 'Entrenamiento Funcional', desc: 'Clases en grupos reducidos.', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=400&q=80', active: true },
-    { id: 2, name: 'Entrenamiento Personal', desc: 'Plan individual a medida.', image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80', active: true },
-    { id: 3, name: 'Readaptación', desc: 'Recuperación funcional especializada.', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=400&q=80', active: true }
+    { id: 1, name: 'Entrenamiento funcional en grupo', desc: 'Clases en grupos reducidos con fuerza, HIIT y trabajo lumbo-pélvico.', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=400&q=80', active: true, category: 'Grupal', enrollment: 'Matrícula abierta todo el año' },
+    { id: 2, name: 'Entrenamiento en pareja', desc: 'Entrenáis en pareja con el mismo entrenador y objetivos compartidos.', image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80', active: true, category: 'Grupal', enrollment: 'Pares bajo consulta' },
+    { id: 3, name: 'Entrenamiento personal', desc: 'Sesión individual de 50 minutos con planificación personalizada.', image: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=400&q=80', active: true, category: 'Individual', enrollment: 'Reserva por teléfono o en recepción' },
+    { id: 4, name: 'Prevención y readaptación de lesiones', desc: 'Recuperación funcional con trabajo de estabilidad lumbo-pélvico y movilidad.', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=400&q=80', active: true, category: 'Salud', enrollment: 'Valoración inicial incluida' },
+    { id: 5, name: 'Training Kids', desc: 'Entrenamiento funcional y motricidad para menores de 8 a 13 años.', image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=400&q=80', active: true, category: 'Infantil', enrollment: 'Martes y jueves · 18:00 h' }
   ],
   team: [
     { id: 1, name: 'Carlos Pérez', role: 'Head Coach', spec: 'Fuerza y acondicionamiento', bio: 'Especialista en rendimiento', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', active: true },
@@ -171,11 +187,7 @@ const mfitData = {
     { id: 1, nombre: 'María López', email: 'maria@test.com', mensaje: '¿Hay plazas para entrenamiento personal?', fecha: '2026-10-24 10:30', estado: 'nueva' }
   ]
 };
-
-const defaultUsers = [
-  { id: 1, name: 'Juan López', email: 'juan@mfit.com', password: 'juan123', role: 'cliente' },
-  { id: 2, name: 'Admin MFIT', email: 'admin@mfit.com', password: 'admin123', role: 'admin' }
-];
+const defaultUsers = [];
 
 const defaultServices = [
   { id: 1, name: 'Bono Mensual', type: 'Bono', billingType: 'time', durationDays: 30, sessions: 0, price: 59, description: 'Acceso ilimitado a clases grupales.', active: true },
@@ -258,9 +270,10 @@ Object.assign(mfitData, state.content);
    ya no puede sobrescribir anuncios premium ni datos ajenos.
    ========================================================== */
 
+
 function snapshotData(docSnap) {
   if (!docSnap || !docSnap.exists) return null;
-  return { id: docSnap.id, ...docSnap.data() };
+  return { ...docSnap.data(), id: docSnap.id };
 }
 
 function snapshotList(querySnap) {
@@ -334,13 +347,19 @@ function deleteReservationDocument(id) {
 const createReservation = createReservationDocument;
 
 // ---------- purchases (el usuario crea las suyas; admin las gestiona) ----------
+
 function createPurchaseDocument(purchase) {
   const user = auth.currentUser;
   if (!user) return Promise.resolve('error');
-  return dbWrite(() => purchasesCol.add({ ...purchase, userId: user.uid, status: 'pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(ref => { purchase.id = ref.id; }), 'No se pudo registrar la compra.');
+  const { id: _localId, ...purchaseData } = purchase;
+  return dbWrite(() => purchasesCol.add({ ...purchaseData, userId: user.uid, status: 'pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp() }).then(ref => { purchase.id = ref.id; }), 'No se pudo registrar la compra.');
 }
 function updatePurchaseDocument(id, data) {
-  return dbWrite(() => purchasesCol.doc(String(id)).update(data), 'No se pudo actualizar la compra.');
+  // set + merge en lugar de update: si el documento no existe (datos heredados)
+  // update() falla con NOT_FOUND. Además se descartan los campos undefined,
+  // que Firestore rechaza al serializar.
+  const clean = Object.fromEntries(Object.entries(data || {}).filter(([, value]) => value !== undefined));
+  return dbWrite(() => purchasesCol.doc(String(id)).set(clean, { merge: true }), 'No se pudo actualizar la compra.');
 }
 function deletePurchaseDocument(id) {
   return dbWrite(() => purchasesCol.doc(String(id)).delete(), 'No se pudo cancelar la solicitud en la nube.');
@@ -435,7 +454,7 @@ function rebuildActivityOccupancy() {
 
 function applyContentToMemory(content) {
   if (!content) return;
-  if (content.info) mfitData.info = content.info;
+  if (content.info) mfitData.info = { ...defaultCenterInfo, ...content.info };
   if (content.services) mfitData.services = content.services;
   if (content.team) mfitData.team = content.team;
   if (content.gallery) mfitData.gallery = content.gallery;
@@ -1082,11 +1101,11 @@ function renderCalendarReminders() {
     const todayActivities = state.activities.filter(a => dateKey(a.date) === todayKey);
     const totalBooked = todayActivities.reduce((sum, a) => sum + (Number(a.booked) || 0), 0);
     if (todayActivities.length) {
-      reminders.push({ type: 'info', icon: '🏋️', title: 'Clases de hoy', text: `${todayActivities.length} clase${todayActivities.length === 1 ? '' : 's'} programada${todayActivities.length === 1 ? '' : 's'} · ${totalBooked} reserva${totalBooked === 1 ? '' : 's'} en total.` });
+      reminders.push({ type: 'info', icon: '🏋️', title: 'Clases de hoy ', text: `${todayActivities.length} clase${todayActivities.length === 1 ? '' : 's'} programada${todayActivities.length === 1 ? '' : 's'} · ${totalBooked} reserva${totalBooked === 1 ? '' : 's'} en total.` });
     }
     const pending = state.purchases.filter(item => item.status === 'pendiente').length;
     if (pending) {
-      reminders.push({ type: 'warning', icon: '🧾', title: 'Compras pendientes', text: `Tienes ${pending} solicitud${pending === 1 ? '' : 'es'} de bono por aprobar.` });
+      reminders.push({ type: 'warning', icon: '🧾', title: 'Compras pendientes ', text: `Tienes ${pending} solicitud${pending === 1 ? '' : 'es'} de bono por aprobar.` });
     }
   }
 
@@ -1825,11 +1844,44 @@ function renderCenterConfig() {
       <article class="catalog-card">
         <img src="${item.image}" alt="${item.name}" style="height:150px; object-fit:cover; border-radius:12px;" />
         <div>
+          ${item.category ? `<span class="label-badge">${item.category}</span>` : ''}
           <h3>${item.name}</h3>
           <p>${item.desc}</p>
+          ${item.enrollment ? `<small class="service-enrollment">📋 ${item.enrollment}</small>` : ''}
         </div>
       </article>
     `).join('');
+  }
+
+  const methodology = document.getElementById('center-methodology');
+  if (methodology) methodology.textContent = mfitData.info.methodology || '';
+
+  const scheduleText = document.getElementById('center-schedule');
+  if (scheduleText) {
+    scheduleText.textContent = mfitData.info.scheduleText
+      || 'Lunes a viernes en mañanas y tardes. Sábados opcionales según grupos.';
+  }
+
+  const scheduleDays = document.getElementById('center-schedule-days');
+  if (scheduleDays) {
+    scheduleDays.innerHTML = `
+      <div class="schedule-day"><strong>Lunes a Viernes</strong><span>Mañanas y tardes</span></div>
+      <div class="schedule-day"><strong>Sábado</strong><span>Opcional según grupos</span></div>
+      <div class="schedule-day highlight"><strong>Training Kids</strong><span>Martes y jueves · 18:00 h · 8-13 años</span></div>
+    `;
+  }
+
+  const rulesContainer = document.getElementById('center-rules');
+  if (rulesContainer) {
+    const rules = mfitData.info.rules || [];
+    rulesContainer.innerHTML = rules.length
+      ? rules.map(rule => `
+        <details class="rule-item">
+          <summary><strong>${rule.title}</strong></summary>
+          <p>${rule.text}</p>
+        </details>
+      `).join('')
+      : '<div class="empty-state">Normas de funcionamiento no definidas.</div>';
   }
 
   const teamContainer = document.getElementById('team-container');
@@ -2390,12 +2442,29 @@ function renderAdminContent() {
     }));
   }
   const info = mfitData.info;
-  ['name', 'description', 'address', 'phone', 'whatsapp', 'email'].forEach(key => {
-    const input = document.getElementById(`info-${key}`);
+  const infoFieldIds = {
+    name: 'info-name',
+    description: 'info-description',
+    address: 'info-address',
+    phone: 'info-phone',
+    whatsapp: 'info-whatsapp',
+    email: 'info-email',
+    methodology: 'info-methodology',
+    scheduleText: 'info-schedule-text'
+  };
+  Object.entries(infoFieldIds).forEach(([key, id]) => {
+    const input = document.getElementById(id);
     if (input) input.value = info[key] || '';
   });
   const heroInput = document.getElementById('info-hero-image');
   if (heroInput) heroInput.value = info.heroImage || '';
+
+  const sessionDurationInput = document.getElementById('info-session-duration');
+  if (sessionDurationInput) sessionDurationInput.value = info.sessionDuration || 50;
+  const transitionInput = document.getElementById('info-transition-minutes');
+  if (transitionInput) transitionInput.value = info.transitionMinutes || 10;
+
+  renderInfoRulesEditor();
 
   const activities = document.getElementById('admin-activities');
   if (activities) activities.innerHTML = state.activities.map(item => `<div class="admin-item"><strong>${item.title}</strong><small>${new Date(item.date).toLocaleDateString('es-ES')} · ${item.time} · ${item.coach}</small><div class="admin-item-actions"><button type="button" class="btn btn-secondary btn-sm" data-edit-activity="${item.id}">Editar</button><button type="button" class="btn btn-secondary btn-sm" data-delete-activity="${item.id}">Eliminar</button></div></div>`).join('') || '<div class="empty-state">No hay actividades.</div>';
@@ -2471,6 +2540,8 @@ document.querySelectorAll('[data-edit-center-service]').forEach(button => button
     document.getElementById('edit-service-name').value = service.name;
     document.getElementById('edit-service-type').value = service.type || 'Servicio';
     document.getElementById('edit-service-description').value = service.desc || '';
+    // Los "servicios del centro" no llevan precio: ocultamos el campo.
+    document.getElementById('edit-service-price-field')?.classList.add('hidden');
     modal.classList.remove('hidden');
   }
 }));
@@ -2502,13 +2573,72 @@ document.querySelectorAll('[data-edit-center-service]').forEach(button => button
 
 async function handleAdminInfoSubmit(event) {
   event.preventDefault();
-  ['name', 'description', 'address', 'phone', 'whatsapp', 'email'].forEach(key => {
-    mfitData.info[key] = document.getElementById(`info-${key}`).value.trim();
+  const infoFieldIds = {
+    name: 'info-name',
+    description: 'info-description',
+    address: 'info-address',
+    phone: 'info-phone',
+    whatsapp: 'info-whatsapp',
+    email: 'info-email',
+    methodology: 'info-methodology',
+    scheduleText: 'info-schedule-text'
+  };
+  Object.entries(infoFieldIds).forEach(([key, id]) => {
+    const input = document.getElementById(id);
+    if (input) mfitData.info[key] = input.value.trim();
   });
+  const sessionDuration = document.getElementById('info-session-duration');
+  if (sessionDuration) mfitData.info.sessionDuration = Number(sessionDuration.value) || 50;
+  const transition = document.getElementById('info-transition-minutes');
+  if (transition) mfitData.info.transitionMinutes = Number(transition.value) || 0;
+  mfitData.info.rules = readInfoRulesEditor();
   const file = document.getElementById('info-hero-file').files[0];
   mfitData.info.heroImage = file ? await uploadImage(file, 'hero') : document.getElementById('info-hero-image').value.trim();
   await persistContent();
+  renderCenterConfig();
   toastSuccess('Contenido guardado correctamente.');
+}
+
+/* ===== EDITOR DE NORMAS DEL CENTRO (solo admin) =====
+   Las normas se editan en una lista dinámica y se guardan como array
+   de objetos { title, text } dentro de mfitData.info.rules. */
+function renderInfoRulesEditor() {
+  const container = document.getElementById('info-rules-editor');
+  if (!container) return;
+  const rules = mfitData.info.rules || [];
+  container.innerHTML = rules.length
+    ? rules.map((rule, index) => `
+      <div class="rule-editor-row" data-rule-index="${index}">
+        <input type="text" class="form-control rule-editor-title" value="${String(rule.title || '').replace(/"/g, '&quot;')}" placeholder="Título de la norma" />
+        <textarea class="form-control rule-editor-text" rows="2" placeholder="Descripción de la norma">${rule.text || ''}</textarea>
+        <button type="button" class="btn btn-danger btn-sm rule-editor-remove" title="Eliminar norma">×</button>
+      </div>
+    `).join('')
+    : '<div class="client-muted">Todavía no hay normas. Usa "Añadir norma" para crear la primera.</div>';
+
+  container.querySelectorAll('.rule-editor-remove').forEach(button => {
+    button.addEventListener('click', () => {
+      const row = button.closest('[data-rule-index]');
+      const index = Number(row.dataset.ruleIndex);
+      mfitData.info.rules = (mfitData.info.rules || []).filter((_, i) => i !== index);
+      renderInfoRulesEditor();
+    });
+  });
+}
+
+function addInfoRuleRow() {
+  if (!Array.isArray(mfitData.info.rules)) mfitData.info.rules = [];
+  mfitData.info.rules.push({ title: '', text: '' });
+  renderInfoRulesEditor();
+}
+
+function readInfoRulesEditor() {
+  const container = document.getElementById('info-rules-editor');
+  if (!container) return mfitData.info.rules || [];
+  return Array.from(container.querySelectorAll('[data-rule-index]')).map(row => ({
+    title: row.querySelector('.rule-editor-title').value.trim(),
+    text: row.querySelector('.rule-editor-text').value.trim()
+  })).filter(rule => rule.title || rule.text);
 }
 
 async function handleAdminHomeSubmit(event) {
@@ -2783,9 +2913,9 @@ function renderAdminPanels() {
   renderAdminContent();
 
   purchasesContainer.querySelectorAll('[data-approve-purchase]').forEach(button => {
-    button.addEventListener('click', () => {
-      const purchaseId = Number(button.dataset.approvePurchase);
-      const purchase = state.purchases.find(item => item.id === purchaseId);
+    button.addEventListener('click', async () => {
+      const purchaseId = button.dataset.approvePurchase;
+      const purchase = state.purchases.find(item => String(item.id) === String(purchaseId));
       if (purchase) {
         purchase.status = 'aprobado';
         purchase.approvedAt = new Date().toISOString();
@@ -2798,8 +2928,10 @@ function renderAdminPanels() {
           purchase.expiresAt = expiresAt.toISOString();
         }
         state.purchaseHistory.push({ ...purchase, event: 'approved', archivedAt: new Date().toISOString() });
+        // Copia previa para poder revertir el estado local si Firestore rechaza la escritura.
+        const previous = { ...purchase };
         // Persistencia aislada: se aprueba la compra del cliente y se archiva en su colección.
-        updatePurchaseDocument(String(purchase.id), {
+        const saved = await updatePurchaseDocument(String(purchase.id), {
           status: purchase.status,
           approvedAt: purchase.approvedAt,
           approvedBy: purchase.approvedBy,
@@ -2807,9 +2939,17 @@ function renderAdminPanels() {
           remainingSessions: purchase.remainingSessions,
           expiresAt: purchase.expiresAt
         });
-        addPurchaseHistoryDocument({ ...purchase, event: 'approved', archivedAt: new Date().toISOString() });
+        if (saved === 'error') {
+          Object.assign(purchase, previous);
+          state.purchaseHistory.pop();
+          renderAdminPanels();
+          renderProfile();
+          return;
+        }
+        await addPurchaseHistoryDocument({ ...purchase, event: 'approved', archivedAt: new Date().toISOString() });
         renderAdminPanels();
         renderProfile();
+        toastInfo('Compra aprobada correctamente.');
       }
     });
   });
@@ -3022,6 +3162,11 @@ async function handleEditServiceSubmit(event) {
       bonusService.name = document.getElementById('edit-service-name').value.trim();
       bonusService.type = document.getElementById('edit-service-type').value.trim();
       bonusService.description = document.getElementById('edit-service-description').value.trim();
+      const priceInput = document.getElementById('edit-service-price');
+      if (priceInput && priceInput.value !== '') {
+        const newPrice = Number(priceInput.value);
+        if (!isNaN(newPrice)) bonusService.price = newPrice;
+      }
 
       await saveSiteContent();
       modal.classList.add('hidden');
@@ -3331,6 +3476,7 @@ function attachEvents() {
   document.getElementById('admin-service-form')?.addEventListener('submit', handleAdminServiceSubmit);
   document.getElementById('admin-user-form')?.addEventListener('submit', handleAdminUserSubmit);
   document.getElementById('admin-info-form')?.addEventListener('submit', handleAdminInfoSubmit);
+  document.getElementById('info-rules-add')?.addEventListener('click', addInfoRuleRow);
   document.getElementById('admin-home-form')?.addEventListener('submit', handleAdminHomeSubmit);
   document.getElementById('admin-activity-form')?.addEventListener('submit', handleAdminActivitySubmit);
   document.getElementById('admin-center-service-form')?.addEventListener('submit', handleAdminCenterServiceSubmit);

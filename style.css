@@ -3802,6 +3802,189 @@ input[type="checkbox"] {
   .premium-cta-btn::after { transition: none; }
 }
 
+/* ===== EDITOR DE NORMAS (panel admin) ===== */
+.rules-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.rule-editor-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'title remove' 'text remove';
+  gap: 8px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--mfit-gris-200);
+  border-radius: 14px;
+  background: var(--mfit-gris-50);
+}
+
+.rule-editor-title {
+  grid-area: title;
+}
+
+.rule-editor-text {
+  grid-area: text;
+}
+
+.rule-editor-remove {
+  grid-area: remove;
+  align-self: center;
+  width: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .rule-editor-row {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'title' 'text' 'remove';
+  }
+
+  .rule-editor-remove {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
+
+/* ============ CENTRO: METODOLOGÍA, HORARIOS Y NORMAS ============ */
+.methodology-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.methodology-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 33, 42, 0.28);
+  background: var(--mfit-rojo-claro);
+  color: var(--mfit-rojo-oscuro);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.schedule-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.schedule-day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--mfit-gris-200);
+  background: var(--mfit-gris-50);
+  font-size: 0.82rem;
+}
+
+.schedule-day strong {
+  color: var(--mfit-negro);
+  font-size: 0.88rem;
+}
+
+.schedule-day span {
+  color: var(--mfit-gris-500);
+}
+
+.schedule-day.highlight {
+  border-color: rgba(249, 217, 118, 0.75);
+  background: linear-gradient(135deg, #fff8e3, #fffdf6);
+}
+
+.schedule-day.highlight strong {
+  color: #8a6100;
+}
+
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rule-item {
+  border: 1px solid var(--mfit-gris-200);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.rule-item summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-size: 0.86rem;
+  color: var(--mfit-negro);
+  list-style: none;
+}
+
+.rule-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.rule-item summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--mfit-rojo);
+  transition: transform 0.2s ease;
+}
+
+.rule-item[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.rule-item p {
+  padding: 0 14px 12px 32px;
+  font-size: 0.82rem;
+  color: var(--mfit-gris-500);
+  line-height: 1.5;
+}
+
+.service-enrollment {
+  display: block;
+  margin-top: 8px;
+  color: var(--mfit-rojo-oscuro);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .methodology-pills {
+    gap: 6px;
+  }
+
+  .methodology-pill {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+
+  .schedule-days {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .rule-item p {
+    padding-left: 14px;
+  }
+}
+
 /* ============ GESTIÓN DE CLIENTES: BAJA / ALTA / ELIMINAR ============ */
 .btn-danger {
   background: #fff1f2;
